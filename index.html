@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎓 Планировщик репетитора</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Планировщик">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh; padding: 20px; color: #2c3e50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app { max-width: 1200px; margin: 0 auto; }
+  header {
+    background: white; border-radius: 16px; padding: 24px 32px;
+    margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,.15);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  h1 { font-size: 26px; color: #2c3e50; }
+  h1 span { font-size: 16px; color: #7f8c8d; display: block; font-weight: normal; margin-top: 4px; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab {
+    padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+    background: #f0f2f5; color: #2c3e50; font-size: 15px; font-weight: 600;
+    transition: all .2s; font-family: inherit;
+  }
+  .tab:hover { background: #e0e4ea; }
+  .tab.active { background: #667eea; color: white; }
+
+  .panel {
+    background: white; border-radius: 16px; padding: 28px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.15);
+  }
+  .panel h2 { font-size: 22px; margin-bottom: 20px; color: #2c3e50; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card { padding: 18px; border-radius: 12px; background: #f8faff; border-left: 4px solid #667eea; }
+  .stat-card .label { font-size: 13px; color: #7f8c8d; margin-bottom: 6px; }
+  .stat-card .value { font-size: 24px; font-weight: 700; color: #2c3e50; }
+  .stat-card.green { border-color: #27ae60; background: #f0faf4; }
+  .stat-card.red   { border-color: #e74c3c; background: #fdf3f2; }
+  .stat-card.orange{ border-color: #f39c12; background: #fff9ee; }
+
+  .month-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .month-nav button {
+    padding: 8px 16px; border: none; border-radius: 8px; background: #667eea;
+    color: white; cursor: pointer; font-size: 16px; font-weight: 600; font-family: inherit;
+  }
+  .month-nav button:hover { background: #5568d3; }
+  .month-nav select {
+    padding: 8px 14px; font-size: 16px; border-radius: 8px; border: 2px solid #e0e4ea;
+    background: white; cursor: pointer; min-width: 130px; font-family: inherit;
+  }
+  .month-title { font-size: 22px; font-weight: 700; color: #2c3e50; margin-left: auto; }
+
+  .day-row {
+    display: grid; grid-template-columns: 110px 1fr; gap: 16px;
+    padding: 14px 16px; border-radius: 10px; margin-bottom: 8px;
+    background: #fafbfc; border-left: 4px solid #667eea;
+  }
+  .day-row.weekend { border-left-color: #bdc3c7; opacity: .55; }
+  .day-row.holiday { border-left-color: #e74c3c; background: #fdf3f2; }
+  .day-date { font-weight: 700; font-size: 15px; color: #2c3e50; }
+  .day-name { font-size: 12px; color: #7f8c8d; margin-top: 2px; }
+  .lessons { display: flex; flex-direction: column; gap: 6px; }
+  .lesson {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 6px 10px; background: white; border-radius: 8px;
+    font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); cursor: pointer;
+  }
+  .lesson:hover { background: #f0f4ff; }
+  .time-badge {
+    background: #667eea; color: white; padding: 3px 10px;
+    border-radius: 20px; font-weight: 700; font-size: 13px;
+  }
+  .lesson.done .time-badge { background: #27ae60; }
+  .lesson.cancelled { opacity: .5; text-decoration: line-through; }
+  .lesson.cancelled .time-badge { background: #e74c3c; }
+  .subject { font-weight: 600; }
+  .students-list { color: #7f8c8d; }
+  .badge { font-size: 15px; }
+  .holiday-label { color: #e74c3c; font-weight: 600; }
+
+  .student-card {
+    background: #f8faff; border-radius: 12px; padding: 18px;
+    margin-bottom: 12px; border-left: 4px solid #667eea;
+  }
+  .student-card h3 { font-size: 17px; margin-bottom: 8px; }
+  .student-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 6px; font-size: 14px; color: #555; }
+  .debt { color: #e74c3c; font-weight: 700; }
+  .ok { color: #27ae60; font-weight: 700; }
+
+  .pay-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .pay-form select, .pay-form input {
+    padding: 10px 14px; border-radius: 8px; border: 2px solid #e0e4ea;
+    font-size: 15px; background: white; font-family: inherit;
+  }
+  .pay-form button {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    background: #27ae60; color: white; cursor: pointer; font-weight: 600; font-family: inherit;
+  }
+  .pay-form button:hover { background: #219150; }
+
+  .log-item {
+    padding: 10px 14px; background: #f0faf4; border-radius: 8px;
+    margin-bottom: 6px; font-size: 14px; border-left: 3px solid #27ae60;
+  }
+
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: white; border-radius: 16px; padding: 28px;
+    max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { margin-bottom: 16px; }
+  .modal label { display: block; margin: 12px 0 4px; font-size: 14px; font-weight: 600; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #e0e4ea;
+    font-size: 15px; font-family: inherit;
+  }
+  .modal textarea { min-height: 70px; resize: vertical; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions button {
+    flex: 1; padding: 12px; border: none; border-radius: 10px;
+    cursor: pointer; font-weight: 600; font-size: 15px; font-family: inherit;
+  }
+  .btn-primary { background: #667eea; color: white; }
+  .btn-primary:hover { background: #5568d3; }
+  .btn-secondary { background: #f0f2f5; color: #2c3e50; }
+
+  .empty { color: #95a5a6; font-style: italic; padding: 20px; text-align: center; }
+
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    header { padding: 18px; }
+    h1 { font-size: 20px; }
+    h1 span { font-size: 13px; }
+    .panel { padding: 18px; }
+    .day-row { grid-template-columns: 80px 1fr; gap: 10px; padding: 10px; }
+    .month-title { margin-left: 0; font-size: 18px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat-card .value { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎓 Планировщик репетитора<span>Мини-CRM: расписание, ученики, оплаты, домашка</span></h1>
+    <div class="tabs">
+      <button class="tab active" data-tab="schedule">📅 Расписание</button>
+      <button class="tab" data-tab="students">👥 Ученики</button>
+      <button class="tab" data-tab="payments">💰 Оплаты</button>
+    </div>
+  </header>
+
+  <div class="panel" id="panel-schedule">
+    <div class="stats" id="stats"></div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">← Назад</button>
+      <select id="monthSelect"></select>
+      <select id="yearSelect"></select>
+      <button onclick="changeMonth(1)">Вперёд →</button>
+      <div class="month-title" id="monthTitle"></div>
+    </div>
+    <div id="scheduleList"></div>
+  </div>
+
+  <div class="panel" id="panel-students" style="display:none">
+    <h2>👥 Мои ученики</h2>
+    <div id="studentsList"></div>
+  </div>
+
+  <div class="panel" id="panel-payments" style="display:none">
+    <h2>💰 Внести оплату</h2>
+    <div class="pay-form">
+      <select id="payStudent"></select>
+      <input type="number" id="payAmount" placeholder="Сумма ₽" min="0">
+      <input type="text" id="payNote" placeholder="Комментарий">
+      <button onclick="addPayment()">Добавить платёж</button>
+    </div>
+    <h3 style="margin-top:24px;margin-bottom:12px;font-size:17px">История платежей</h3>
+    <div id="paymentsLog"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Урок</h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveLesson()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var DEFAULT_DATA = {
+  students: {
+    S1: { name: "Иванов Иван", subject: "Математика", price: 1500,
+          phone: "+7 900 111-22-33", parent: "Мама: +7 900 111-22-44" },
+    S2: { name: "Петрова Анна", subject: "Русский язык", price: 1200,
+          phone: "+7 900 222-33-44", parent: "" },
+    S3: { name: "Сидоров Пётр", subject: "Физика", price: 1800,
+          phone: "+7 900 333-44-55", parent: "" }
+  },
+  schedule: {
+    0: [ {time:"15:00", students:["S1"], subject:"Математика"},
+         {time:"16:30", students:["S2"], subject:"Русский"} ],
+    1: [ {time:"14:00", students:["S3"], subject:"Физика"} ],
+    2: [ {time:"15:00", students:["S1","S3"], subject:"Математика"},
+         {time:"17:00", students:["S2"], subject:"Русский"} ],
+    3: [],
+    4: [ {time:"16:00", students:["S1"], subject:"Математика"},
+         {time:"17:30", students:["S3"], subject:"Физика"} ],
+    5: [ {time:"10:00", students:["S2"], subject:"Русский"} ],
+    6: []
+  },
+  lessons: {},
+  payments: []
+};
+
+var DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+var MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь",
+              "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+var HOLIDAYS = { "1-1":1,"1-2":1,"1-3":1,"1-4":1,"1-5":1,"1-6":1,"1-7":1,"1-8":1,
+                 "2-23":1,"3-8":1,"5-1":1,"5-9":1,"6-12":1,"11-4":1 };
+
+var data;
+var curMonth = new Date().getMonth();
+var curYear  = new Date().getFullYear();
+var editingLesson = null;
+
+function load() {
+  try {
+    var saved = localStorage.getItem('planner_data');
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed && parsed.students && parsed.schedule) return parsed;
+    }
+  } catch (e) { console.warn('Ошибка чтения', e); }
+  var d = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  var y = new Date().getFullYear();
+  generateYear(d, y);
+  generateYear(d, y + 1);
+  return d;
+}
+
+function save() {
+  try { localStorage.setItem('planner_data', JSON.stringify(data)); }
+  catch (e) { console.error('Ошибка сохранения', e); }
+}
+
+function generateYear(d, year) {
+  for (var m = 1; m <= 12; m++) {
+    var daysInMonth = new Date(year, m, 0).getDate();
+    for (var day = 1; day <= daysInMonth; day++) {
+      if (HOLIDAYS[m + "-" + day]) continue;
+      var dayIdx = (new Date(year, m-1, day).getDay() + 6) % 7;
+      var slots = d.schedule[dayIdx] || [];
+      if (!slots.length) continue;
+      var key = year + "-" + String(m).padStart(2,'0') + "-" + String(day).padStart(2,'0');
+      if (!d.lessons[key]) d.lessons[key] = [];
+      var existing = {};
+      d.lessons[key].forEach(function(l) { existing[l.time + "|" + l.students.join(",")] = 1; });
+      slots.forEach(function(slot) {
+        var sig = slot.time + "|" + slot.students.join(",");
+        if (existing[sig]) return;
+        d.lessons[key].push({
+          time: slot.time, students: slot.students.slice(), subject: slot.subject,
+          status: "planned", homework: "", hw_done: false, price_paid: false
+        });
+      });
+    }
+  }
+}
+
+function switchTab(name) {
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++)
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab') === name);
+  ['schedule','students','payments'].forEach(function(p) {
+    document.getElementById('panel-' + p).style.display = (p === name) ? 'block' : 'none';
+  });
+  if (name === 'students') renderStudents();
+  if (name === 'payments') renderPayments();
+}
+
+function initSelects() {
+  var ms = document.getElementById('monthSelect');
+  ms.innerHTML = '';
+  for (var i = 0; i < 12; i++) {
+    var opt = document.createElement('option');
+    opt.value = i; opt.textContent = MONTHS[i];
+    ms.appendChild(opt);
+  }
+  var ys = document.getElementById('yearSelect');
+  ys.innerHTML = '';
+  var y0 = new Date().getFullYear();
+  [y0-1, y0, y0+1, y0+2].forEach(function(y) {
+    var opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    ys.appendChild(opt);
+  });
+}
+
+function changeMonth(delta) {
+  if (delta !== 0) {
+    curMonth += delta;
+    if (curMonth < 0) { curMonth = 11; curYear--; }
+    if (curMonth > 11) { curMonth = 0; curYear++; }
+  } else {
+    curMonth = parseInt(document.getElementById('monthSelect').value, 10);
+    curYear  = parseInt(document.getElementById('yearSelect').value, 10);
+  }
+  document.getElementById('monthSelect').value = curMonth;
+  document.getElementById('yearSelect').value = curYear;
+  renderSchedule();
+}
+
+function renderSchedule() {
+  document.getElementById('monthTitle').textContent = MONTHS[curMonth] + ' ' + curYear;
+  var list = document.getElementById('scheduleList');
+  list.innerHTML = '';
+  var daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
+  var monthLessons = 0, monthIncome = 0, monthDone = 0, anyRows = false;
+
+  for (var day = 1; day <= daysInMonth; day++) {
+    var dayIdx = (new Date(curYear, curMonth, day).getDay() + 6) % 7;
+    var key = curYear + "-" + String(curMonth+1).padStart(2,'0') + "-" + String(day).padStart(2,'0');
+    var isHoliday = !!HOLIDAYS[(curMonth+1) + "-" + day];
+    var lessons = data.lessons[key] || [];
+    var isWeekend = dayIdx >= 5;
+    if (!lessons.length && !isHoliday) continue;
+    anyRows = true;
+
+    var row = document.createElement('div');
+    row.className = 'day-row' + (isHoliday ? ' holiday' : (isWeekend ? ' weekend' : ''));
+
+    var left = document.createElement('div');
+    left.innerHTML = '<div class="day-date">' + day + ' ' + MONTHS[curMonth].toLowerCase() +
+                     '</div><div class="day-name">' + DAYS[dayIdx] + '</div>';
+    row.appendChild(left);
+
+    var right = document.createElement('div');
+    right.className = 'lessons';
+
+    if (isHoliday) {
+      right.innerHTML = '<div class="holiday-label">🎉 Выходной (праздник)</div>';
+    } else {
+      lessons.forEach(function(l, idx) {
+        var names = l.students.map(function(s) {
+          return (data.students[s] ? data.students[s].name : s).split(' ')[0];
+        }).join(', ');
+        var cls = l.status === 'done' ? 'done' : (l.status === 'cancelled' ? 'cancelled' : '');
+        var icon = l.status === 'done' ? '✅' : (l.status === 'cancelled' ? '❌' : '⏳');
+        var div = document.createElement('div');
+        div.className = 'lesson ' + cls;
+        div.innerHTML = '<span class="time-badge">' + l.time + '</span>' +
+                        '<span class="subject">' + l.subject + '</span>' +
+                        '<span class="students-list">→ ' + names + '</span>' +
+                        (l.homework ? '<span class="badge">📝</span>' : '') +
+                        (l.price_paid ? '<span class="badge">💰</span>' : '') +
+                        '<span class="badge">' + icon + '</span>';
+        div.onclick = (function(k, i) { return function() { openLesson(k, i); }; })(key, idx);
+        right.appendChild(div);
+
+        monthLessons++;
+        if (l.status === 'done') {
+          monthDone++;
+          l.students.forEach(function(s) {
+            if (data.students[s]) monthIncome += data.students[s].price;
+          });
+        }
+      });
+    }
+    row.appendChild(right);
+    list.appendChild(row);
+  }
+
+  if (!anyRows) list.innerHTML = '<div class="empty">В этом месяце занятий нет</div>';
+
+  var totalDebt = calcTotalDebt();
+  document.getElementById('stats').innerHTML =
+    '<div class="stat-card"><div class="label">Занятий в месяце</div><div class="value">' + monthLessons + '</div></div>' +
+    '<div class="stat-card green"><div class="label">Проведено</div><div class="value">' + monthDone + '</div></div>' +
+    '<div class="stat-card orange"><div class="label">Начислено за месяц</div><div class="value">' + monthIncome.toLocaleString('ru') + ' ₽</div></div>' +
+    '<div class="stat-card red"><div class="label">Общий долг</div><div class="value">' + totalDebt.toLocaleString('ru') + ' ₽</div></div>';
+}
+
+function calcTotalDebt() {
+  var debt = 0;
+  for (var key in data.lessons) {
+    data.lessons[key].forEach(function(l) {
+      if (l.status === 'done' && !l.price_paid) {
+        l.students.forEach(function(s) {
+          if (data.students[s]) debt += data.students[s].price;
+        });
+      }
+    });
+  }
+  var paid = data.payments.reduce(function(s, p) { return s + p.amount; }, 0);
+  return Math.max(0, debt - paid);
+}
+
+function openLesson(dateKey, idx) {
+  editingLesson = { dateKey: dateKey, idx: idx };
+  var l = data.lessons[dateKey][idx];
+  var names = l.students.map(function(s) { return data.students[s] ? data.students[s].name : s; }).join(', ');
+  document.getElementById('modalTitle').textContent =
+    dateKey.split('-').reverse().join('.') + ' в ' + l.time;
+  document.getElementById('modalBody').innerHTML =
+    '<p style="color:#7f8c8d;margin-bottom:12px">' + l.subject + ' — ' + names + '</p>' +
+    '<label>Статус</label>' +
+    '<select id="mStatus">' +
+      '<option value="planned"'   + (l.status==='planned'?' selected':'') + '>⏳ Запланирован</option>' +
+      '<option value="done"'      + (l.status==='done'?' selected':'') + '>✅ Проведён</option>' +
+      '<option value="cancelled"' + (l.status==='cancelled'?' selected':'') + '>❌ Отменён</option>' +
+    '</select>' +
+    '<label>Домашнее задание</label>' +
+    '<textarea id="mHw" placeholder="Что задано...">' + (l.homework || '') + '</textarea>' +
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" id="mHwDone"' + (l.hw_done?' checked':'') + ' style="width:auto"> Проверено</label>' +
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="mPaid"' + (l.price_paid?' checked':'') + ' style="width:auto"> Оплачено</label>';
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function saveLesson() {
+  if (!editingLesson) return;
+  var l = data.lessons[editingLesson.dateKey][editingLesson.idx];
+  l.status = document.getElementById('mStatus').value;
+  l.homework = document.getElementById('mHw').value;
+  l.hw_done = document.getElementById('mHwDone').checked;
+  l.price_paid = document.getElementById('mPaid').checked;
+  save();
+  closeModal();
+  renderSchedule();
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('show');
+  editingLesson = null;
+}
+
+function renderStudents() {
+  var list = document.getElementById('studentsList');
+  list.innerHTML = '';
+  for (var sid in data.students) {
+    var s = data.students[sid];
+    var debt = 0, done = 0;
+    for (var key in data.lessons) {
+      data.lessons[key].forEach(function(l) {
+        if (l.students.indexOf(sid) !== -1 && l.status === 'done') {
+          done++;
+          if (!l.price_paid) debt += s.price;
+        }
+      });
+    }
+    var paid = data.payments.filter(function(p){ return p.student === sid; })
+                            .reduce(function(sum,p){ return sum + p.amount; }, 0);
+    var realDebt = Math.max(0, debt - paid);
+
+    var card = document.createElement('div');
+    card.className = 'student-card';
+    card.innerHTML =
+      '<h3>' + s.name + '</h3>' +
+      '<div style="font-size:14px;color:#667eea;font-weight:600">' + s.subject + ' · ' + s.price + ' ₽/урок</div>' +
+      '<div class="student-row"><span>📞 ' + (s.phone || '—') + '</span><span>👪 ' + (s.parent || '—') + '</span></div>' +
+      '<div class="student-row" style="margin-top:10px">' +
+        '<span>Проведено уроков: <b>' + done + '</b></span>' +
+        '<span>Оплачено: <b>' + paid.toLocaleString('ru') + ' ₽</b></span>' +
+        '<span>Долг: <span class="' + (realDebt > 0 ? 'debt' : 'ok') + '">' + realDebt.toLocaleString('ru') + ' ₽</span></span>' +
+      '</div>';
+    list.appendChild(card);
+  }
+}
+
+function renderPayments() {
+  var sel = document.getElementById('payStudent');
+  sel.innerHTML = '';
+  for (var id in data.students) {
+    var opt = document.createElement('option');
+    opt.value = id; opt.textContent = data.students[id].name;
+    sel.appendChild(opt);
+  }
+  var log = document.getElementById('paymentsLog');
+  if (!data.payments.length) {
+    log.innerHTML = '<div class="empty">Платежей пока нет</div>';
+    return;
+  }
+  log.innerHTML = data.payments.slice().reverse().map(function(p) {
+    var s = data.students[p.student];
+    return '<div class="log-item"><b>' + (s ? s.name : p.student) + '</b> — ' +
+           p.amount.toLocaleString('ru') + ' ₽ <span style="color:#7f8c8d;font-size:13px"> · ' +
+           p.date + (p.note ? ' · ' + p.note : '') + '</span></div>';
+  }).join('');
+}
+
+function addPayment() {
+  var student = document.getElementById('payStudent').value;
+  var amount = parseInt(document.getElementById('payAmount').value, 10);
+  var note = document.getElementById('payNote').value;
+  if (!amount || amount <= 0) { alert('Введи сумму'); return; }
+  data.payments.push({
+    student: student, amount: amount, note: note,
+    date: new Date().toISOString().slice(0,10)
+  });
+  save();
+  document.getElementById('payAmount').value = '';
+  document.getElementById('payNote').value = '';
+  renderPayments();
+  renderSchedule();
+}
+
+window.onload = function() {
+  try {
+    data = load();
+    save();
+    initSelects();
+
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].onclick = (function(t) {
+        return function() { switchTab(t.getAttribute('data-tab')); };
+      })(tabs[i]);
+    }
+
+    document.getElementById('monthSelect').value = curMonth;
+    document.getElementById('yearSelect').value = curYear;
+
+    document.getElementById('modalBg').onclick = function(e) {
+      if (e.target.id === 'modalBg') closeModal();
+    };
+
+    renderSchedule();
+    console.log('✅ Планировщик запущен');
+
+    // Регистрируем service worker для офлайн-режима
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(function() { console.log('✅ Service Worker активен'); })
+        .catch(function(err) { console.warn('⚠️ SW:', err); });
+    }
+  } catch (err) {
+    console.error('❌ Ошибка запуска:', err);
+  }
+};
+</script>
+</body>
+</html>

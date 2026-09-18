@@ -106,6 +106,8 @@
   .badge { font-size: 15px; }
   .paid-badge { font-size: 12px; background: #e8f8ef; color: #27ae60; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
   .move-badge { font-size: 12px; background: #e8f8f5; color: #16a085; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .dur-badge { font-size: 12px; background: #fff4e6; color: #e67e22; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .price-badge { font-size: 12px; background: #f0e6ff; color: #8e44ad; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
   .holiday-label { color: #e74c3c; font-weight: 600; }
   .no-lessons { color: #bdc3c7; font-style: italic; font-size: 13px; }
   .add-btn {
@@ -225,8 +227,24 @@
     font-family: inherit; font-weight: 600;
   }
   .weekday-chip.selected { background: #f39c12; color: white; border-color: #f39c12; }
+  .dur-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .dur-chip {
+    padding: 8px 14px; border-radius: 20px; border: 2px solid #e0e4ea;
+    background: white; cursor: pointer; font-size: 14px; user-select: none;
+    font-family: inherit; font-weight: 600;
+  }
+  .dur-chip.selected { background: #e67e22; color: white; border-color: #e67e22; }
+  .dur-custom { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .dur-custom input { width: 80px; padding: 8px 10px; font-size: 14px; }
+  .dur-custom span { font-size: 14px; color: #555; }
+  .price-preview {
+    margin-top: 14px; padding: 12px 16px; background: #f0e6ff;
+    border-radius: 10px; font-size: 15px; font-weight: 600; color: #8e44ad;
+  }
+  .price-preview b { font-size: 18px; }
   .empty { color: #95a5a6; font-style: italic; padding: 20px; text-align: center; }
   .row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   @media (max-width: 600px) {
     body { padding: 10px; }
     header { padding: 18px; }
@@ -239,11 +257,10 @@
     .stat-card .value { font-size: 18px; }
     .slot-day { width: 70px; font-size: 13px; }
     .add-btn { width: 36px; height: 36px; font-size: 18px; }
-    .row-2col { grid-template-columns: 1fr; }
+    .row-2col, .row-3col { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
+</head><body>
 <div class="app">
   <header>
     <h1>🎓 Планировщик репетитора<span>Мини-CRM: расписание, ученики, оплаты, домашка</span></h1>
@@ -390,6 +407,7 @@ var editingLesson = null;
 var editingStudentId = null;
 var editingSlot = null;
 var seriesSelectedWeekdays = [];
+var seriesDuration = 60;
 
 function pad2(n) { return String(n).padStart(2,'0'); }
 function dateKey(y, m, d) { return y + '-' + pad2(m) + '-' + pad2(d); }
@@ -402,11 +420,34 @@ function formatDateRu(key) {
   var p = key.split('-');
   return p[2] + '.' + p[1] + '.' + p[0];
 }
+function formatDuration(min) {
+  if (!min || min <= 0) return '—';
+  if (min < 60) return min + ' мин';
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  if (m === 0) return h + ' ч';
+  return h + ',' + (m === 30 ? '5' : m) + ' ч';
+}
+function formatDurationShort(min) {
+  if (!min || min <= 0) return '';
+  if (min < 60) return min + 'м';
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  if (m === 0) return h + 'ч';
+  return h + ',' + (m === 30 ? '5' : m) + 'ч';
+}
+function addMinutesToTime(time, minutes) {
+  var parts = time.split(':');
+  var total = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) + minutes;
+  var h = Math.floor(total / 60) % 24;
+  var m = total % 60;
+  return pad2(h) + ':' + pad2(m);
+}
 
 // ====================== ХРАНЕНИЕ ======================
 function load() {
   try {
-    var saved = localStorage.getItem('planner_data_v4');
+    var saved = localStorage.getItem('planner_data_v5');
     if (saved) {
       var parsed = JSON.parse(saved);
       if (parsed && parsed.students && parsed.schedule) return parsed;
@@ -415,7 +456,7 @@ function load() {
   return JSON.parse(JSON.stringify(EMPTY_DATA));
 }
 function save() {
-  try { localStorage.setItem('planner_data_v4', JSON.stringify(data)); } catch (e) {}
+  try { localStorage.setItem('planner_data_v5', JSON.stringify(data)); } catch (e) {}
 }
 function regenerateLessons() {
   var keep = {};
@@ -447,7 +488,7 @@ function regenerateLessons() {
           data.lessons[key].push({
             time: slot.time, students: slot.students.slice(), subject: slot.subject,
             status: "planned", homework: "", hw_done: false, price_paid: false,
-            paid_date: "", manual: false
+            paid_date: "", manual: false, duration: slot.duration || 60
           });
         });
       }
@@ -540,17 +581,31 @@ function renderSchedule() {
         }).join(', ');
         var cls = l.status === 'done' ? 'done' : (l.status === 'cancelled' ? 'cancelled' : '');
         var icon = l.status === 'done' ? '✅' : (l.status === 'cancelled' ? '❌' : '⏳');
+        var dur = l.duration || 60;
+        var endTime = addMinutesToTime(l.time, dur);
         var paidHtml = l.price_paid
           ? '<span class="paid-badge">💰 ' + (l.paid_date ? formatDateRu(l.paid_date).slice(0,5) : 'оплач.') + '</span>'
           : '';
         var movedHtml = l.moved_from
           ? '<span class="move-badge">🔄 с ' + formatDateRu(l.moved_from.date).slice(0,5) + '</span>'
           : '';
+        var durHtml = '<span class="dur-badge">⏱ ' + formatDurationShort(dur) + '</span>';
+
+        // Стоимость урока — сумма цен учеников × длительность
+        var totalPrice = 0;
+        l.students.forEach(function(s) {
+          if (data.students[s]) totalPrice += data.students[s].price * (dur / 60);
+        });
+        var priceHtml = totalPrice > 0
+          ? '<span class="price-badge">💵 ' + Math.round(totalPrice).toLocaleString('ru') + ' ₽</span>'
+          : '';
+
         var div = document.createElement('div');
         div.className = 'lesson ' + cls;
-        div.innerHTML = '<span class="time-badge">' + l.time + '</span>' +
+        div.innerHTML = '<span class="time-badge">' + l.time + '–' + endTime + '</span>' +
                         '<span class="subject">' + l.subject + '</span>' +
                         '<span class="students-list">→ ' + names + '</span>' +
+                        durHtml + priceHtml +
                         movedHtml +
                         (l.homework ? '<span class="badge">📝</span>' : '') +
                         paidHtml +
@@ -560,9 +615,7 @@ function renderSchedule() {
         monthLessons++;
         if (l.status === 'done') {
           monthDone++;
-          l.students.forEach(function(s) {
-            if (data.students[s]) monthIncome += data.students[s].price;
-          });
+          monthIncome += totalPrice;
         }
       });
     }
@@ -582,12 +635,11 @@ function renderSchedule() {
   document.getElementById('stats').innerHTML =
     '<div class="stat-card"><div class="label">Занятий в месяце</div><div class="value">' + monthLessons + '</div></div>' +
     '<div class="stat-card green"><div class="label">Проведено</div><div class="value">' + monthDone + '</div></div>' +
-    '<div class="stat-card orange"><div class="label">Начислено</div><div class="value">' + monthIncome.toLocaleString('ru') + ' ₽</div></div>' +
-    '<div class="stat-card red"><div class="label">Общий долг</div><div class="value">' + totalDebt.toLocaleString('ru') + ' ₽</div></div>';
+    '<div class="stat-card orange"><div class="label">Начислено</div><div class="value">' + Math.round(monthIncome).toLocaleString('ru') + ' ₽</div></div>' +
+    '<div class="stat-card red"><div class="label">Общий долг</div><div class="value">' + Math.round(totalDebt).toLocaleString('ru') + ' ₽</div></div>';
 
   renderTracker();
 }
-
 function renderTracker() {
   var today = new Date();
   var dayOfWeek = (today.getDay() + 6) % 7;
@@ -625,14 +677,55 @@ function calcTotalDebt() {
   for (var key in data.lessons) {
     data.lessons[key].forEach(function(l) {
       if (l.status === 'done' && !l.price_paid) {
+        var dur = l.duration || 60;
         l.students.forEach(function(s) {
-          if (data.students[s]) debt += data.students[s].price;
+          if (data.students[s]) debt += data.students[s].price * (dur / 60);
         });
       }
     });
   }
   var paid = data.payments.reduce(function(s, p) { return s + p.amount; }, 0);
   return Math.max(0, debt - paid);
+}
+
+// ====================== ПИКЕР ДЛИТЕЛЬНОСТИ ======================
+var DUR_PRESETS = [30, 45, 60, 90, 120];
+
+function renderDurationPicker(selectedMin, onChangeFn) {
+  var html = '<div class="dur-picker">';
+  DUR_PRESETS.forEach(function(m) {
+    var sel = (m === selectedMin) ? ' selected' : '';
+    html += '<div class="dur-chip' + sel + '" data-min="' + m + '">' + formatDuration(m) + '</div>';
+  });
+  html += '</div>';
+  html += '<div class="dur-custom">' +
+    '<span>Своё:</span>' +
+    '<input type="number" min="15" step="15" id="durCustomVal" value="' + selectedMin + '">' +
+    '<span>мин</span>' +
+    '</div>';
+  return html;
+}
+
+function setupDurationPicker(containerId, initial, onUpdate) {
+  var container = document.getElementById(containerId);
+  var chips = container.querySelectorAll('.dur-chip');
+  var customInput = container.querySelector('#durCustomVal');
+  chips.forEach(function(chip) {
+    chip.onclick = function() {
+      chips.forEach(function(c) { c.classList.remove('selected'); });
+      chip.classList.add('selected');
+      var m = parseInt(chip.getAttribute('data-min'), 10);
+      customInput.value = m;
+      onUpdate(m);
+    };
+  });
+  customInput.oninput = function() {
+    var m = parseInt(customInput.value, 10) || 60;
+    chips.forEach(function(c) {
+      c.classList.toggle('selected', parseInt(c.getAttribute('data-min'), 10) === m);
+    });
+    onUpdate(m);
+  };
 }
 
 // ====================== НОВЫЙ УРОК ======================
@@ -649,17 +742,22 @@ function openNewLesson(dateKey) {
   document.getElementById('lessonSaveBtn').textContent = 'Сохранить';
   document.getElementById('lessonSaveBtn').onclick = saveLesson;
   editingLesson = { dateKey: dateKey, idx: -1 };
+
   var chips = Object.keys(data.students).map(function(sid) {
-    return '<div class="student-chip" data-sid="' + sid + '" onclick="toggleChip(this)">' +
-           data.students[sid].name + '</div>';
+    return '<div class="student-chip" data-sid="' + sid + '" onclick="toggleChip(this); updateNewLessonPrice();">' +
+           data.students[sid].name + ' <span style="opacity:.7">' + data.students[sid].price + '₽/ч</span></div>';
   }).join('');
+
   document.getElementById('modalBody').innerHTML =
-    '<label>Время</label>' +
+    '<label>Время начала</label>' +
     '<input type="time" id="newTime" value="16:00">' +
     '<label>Предмет</label>' +
     '<input type="text" id="newSubject" placeholder="Математика">' +
+    '<label>Длительность</label>' +
+    '<div id="newDurWrap">' + renderDurationPicker(60) + '</div>' +
     '<label>Ученики (клик — выбрать)</label>' +
     '<div class="student-picker">' + chips + '</div>' +
+    '<div class="price-preview" id="newPricePreview">💵 Стоимость урока: <b>0 ₽</b></div>' +
     '<div class="checkbox-row"><input type="checkbox" id="newPaid" onchange="toggleNewPaid()"> Оплачено</div>' +
     '<div class="checkbox-row" id="newPaidDateRow" style="display:none">' +
       '<label style="margin:0;font-size:13px">Дата оплаты:</label>' +
@@ -669,6 +767,20 @@ function openNewLesson(dateKey) {
       '💡 Урок добавится только на эту дату. Для повторов используй <b>📆 Добавить серию</b>.' +
     '</div>';
   showModal('modalBg');
+
+  setupDurationPicker('newDurWrap', 60, function() { updateNewLessonPrice(); });
+  updateNewLessonPrice();
+}
+
+function updateNewLessonPrice() {
+  var dur = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
+  var chips = document.querySelectorAll('#modalBody .student-chip.selected');
+  var total = 0;
+  chips.forEach(function(c) {
+    var sid = c.getAttribute('data-sid');
+    if (data.students[sid]) total += data.students[sid].price * (dur / 60);
+  });
+  document.getElementById('newPricePreview').innerHTML = '💵 Стоимость урока: <b>' + Math.round(total).toLocaleString('ru') + ' ₽</b>';
 }
 
 function toggleNewPaid() {
@@ -705,13 +817,18 @@ function openLesson(dateKey, idx) {
                 '🔄 Перенесён на ' + formatDateRu(l.moved_to.date) + ' (' + l.moved_to.time + ')</div>';
   }
 
+  var dur = l.duration || 60;
+
   document.getElementById('modalBody').innerHTML =
     infoHtml +
     '<p style="color:#7f8c8d;margin-bottom:12px"><b>' + l.subject + '</b> — ' + names + '</p>' +
-    '<label>Время</label>' +
+    '<label>Время начала</label>' +
     '<input type="time" id="mTime" value="' + l.time + '">' +
     '<label>Предмет</label>' +
     '<input type="text" id="mSubject" value="' + (l.subject || '') + '">' +
+    '<label>Длительность</label>' +
+    '<div id="editDurWrap">' + renderDurationPicker(dur) + '</div>' +
+    '<div class="price-preview" id="editPricePreview"></div>' +
     '<label>Статус</label>' +
     '<select id="mStatus">' +
       '<option value="planned"'   + (l.status==='planned'?' selected':'') + '>⏳ Запланирован</option>' +
@@ -726,7 +843,23 @@ function openLesson(dateKey, idx) {
       '<label style="margin:0;font-size:13px">Дата оплаты:</label>' +
       '<input type="date" id="mPaidDate" value="' + (l.paid_date || todayKey()) + '">' +
     '</div>';
+
   showModal('modalBg');
+
+  // Пикер длительности
+  setupDurationPicker('editDurWrap', dur, function() { updateEditPrice(); });
+  updateEditPrice();
+}
+
+function updateEditPrice() {
+  if (!editingLesson || editingLesson.idx < 0) return;
+  var dur = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
+  var l = data.lessons[editingLesson.dateKey][editingLesson.idx];
+  var total = 0;
+  l.students.forEach(function(s) {
+    if (data.students[s]) total += data.students[s].price * (dur / 60);
+  });
+  document.getElementById('editPricePreview').innerHTML = '💵 Стоимость урока: <b>' + Math.round(total).toLocaleString('ru') + ' ₽</b>';
 }
 
 function toggleEditPaid() {
@@ -741,6 +874,7 @@ function saveLesson() {
   if (editingLesson.idx === -1) {
     var time = document.getElementById('newTime').value;
     var subject = document.getElementById('newSubject').value.trim();
+    var dur = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
     if (!time) { alert('Укажи время'); return; }
     var chips = document.querySelectorAll('#modalBody .student-chip.selected');
     var students = [];
@@ -753,7 +887,7 @@ function saveLesson() {
       time: time, students: students, subject: subject,
       status: 'planned', homework: '', hw_done: false,
       price_paid: paid, paid_date: paidDate,
-      manual: true
+      manual: true, duration: dur
     });
     save();
     hideModal('modalBg');
@@ -765,6 +899,7 @@ function saveLesson() {
   var l = data.lessons[dateKey][editingLesson.idx];
   l.time = document.getElementById('mTime').value;
   l.subject = document.getElementById('mSubject').value.trim();
+  l.duration = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
   l.status = document.getElementById('mStatus').value;
   l.homework = document.getElementById('mHw').value;
   l.hw_done = document.getElementById('mHwDone').checked;
@@ -793,7 +928,6 @@ function deleteLesson() {
   renderSchedule();
 }
 
-// ====================== ОТМЕНА УРОКА ======================
 function cancelLesson() {
   if (!editingLesson || editingLesson.idx < 0) return;
   if (!confirm('Отменить этот урок?\n\nОн останется в календаре зачёркнутым.')) return;
@@ -806,7 +940,6 @@ function cancelLesson() {
   renderSchedule();
 }
 
-// ====================== ПЕРЕНОС УРОКА ======================
 function openMoveLesson() {
   if (!editingLesson || editingLesson.idx < 0) return;
   var l = data.lessons[editingLesson.dateKey][editingLesson.idx];
@@ -850,12 +983,10 @@ function doMoveLesson() {
     return;
   }
 
-  // Старый урок помечаем отменённым с инфо о переносе
   l.status = 'cancelled';
   l.cancelled_at = todayKey();
   l.moved_to = { date: newDate, time: newTime };
 
-  // Создаём копию на новой дате
   if (!data.lessons[newDate]) data.lessons[newDate] = [];
   data.lessons[newDate].push({
     time: newTime,
@@ -867,6 +998,7 @@ function doMoveLesson() {
     price_paid: false,
     paid_date: '',
     manual: true,
+    duration: l.duration || 60,
     moved_from: { date: oldDate, time: oldTime }
   });
 
@@ -892,9 +1024,11 @@ function openSeriesEditor() {
     return;
   }
   seriesSelectedWeekdays = [];
+  seriesDuration = 60;
+
   var chips = Object.keys(data.students).map(function(sid) {
-    return '<div class="student-chip" data-sid="' + sid + '" onclick="toggleChip(this)">' +
-           data.students[sid].name + '</div>';
+    return '<div class="student-chip" data-sid="' + sid + '" onclick="toggleChip(this); updateSeriesPreview();">' +
+           data.students[sid].name + ' <span style="opacity:.7">' + data.students[sid].price + '₽/ч</span></div>';
   }).join('');
   var wdChips = DAYS_SHORT.map(function(d, i) {
     return '<div class="weekday-chip" data-day="' + i + '" onclick="toggleWeekday(this)">' + d + '</div>';
@@ -904,7 +1038,7 @@ function openSeriesEditor() {
     '<label>Название / предмет</label>' +
     '<input type="text" id="seriesSubject" placeholder="Математика">' +
     '<div class="row-2col">' +
-      '<div><label>Время</label><input type="time" id="seriesTime" value="16:00"></div>' +
+      '<div><label>Время начала</label><input type="time" id="seriesTime" value="16:00"></div>' +
       '<div><label>Оплачено заранее?</label>' +
         '<select id="seriesPaid">' +
           '<option value="no">Нет</option>' +
@@ -912,6 +1046,8 @@ function openSeriesEditor() {
         '</select>' +
       '</div>' +
     '</div>' +
+    '<label>Длительность каждого урока</label>' +
+    '<div id="seriesDurWrap">' + renderDurationPicker(60) + '</div>' +
     '<label>Даты серии</label>' +
     '<div class="row-2col">' +
       '<div><label style="font-size:12px;color:#7f8c8d;margin:0">С</label><input type="date" id="seriesFrom" value="' + todayKey() + '"></div>' +
@@ -931,6 +1067,10 @@ function openSeriesEditor() {
 
   ['seriesFrom','seriesTo'].forEach(function(id) {
     document.getElementById(id).onchange = updateSeriesPreview;
+  });
+  setupDurationPicker('seriesDurWrap', 60, function() {
+    seriesDuration = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
+    updateSeriesPreview();
   });
   updateSeriesPreview();
 }
@@ -958,9 +1098,16 @@ function updateSeriesPreview() {
     preview.textContent = '⚠️ В этом диапазоне нет подходящих дней';
     return;
   }
-  preview.innerHTML = '✅ Будет создано <b>' + dates.length + '</b> урок(ов):<br>' +
+  var chips = document.querySelectorAll('#seriesModalBody .student-chip.selected');
+  var total = 0;
+  chips.forEach(function(c) {
+    var sid = c.getAttribute('data-sid');
+    if (data.students[sid]) total += data.students[sid].price * (seriesDuration / 60);
+  });
+  preview.innerHTML = '✅ Будет создано <b>' + dates.length + '</b> урок(ов) по ' + formatDuration(seriesDuration) + '<br>' +
     dates.slice(0, 10).map(function(k) { return formatDateRu(k); }).join(', ') +
-    (dates.length > 10 ? ' ... и ещё ' + (dates.length - 10) : '');
+    (dates.length > 10 ? ' ... и ещё ' + (dates.length - 10) : '') +
+    (total > 0 ? '<br>💵 Стоимость одного урока: <b>' + Math.round(total).toLocaleString('ru') + ' ₽</b>' : '');
 }
 
 function collectSeriesDates(fromStr, toStr, weekdays) {
@@ -988,6 +1135,7 @@ function saveSeries() {
   var time = document.getElementById('seriesTime').value;
   var subject = document.getElementById('seriesSubject').value.trim();
   var paid = document.getElementById('seriesPaid').value === 'yes';
+  var dur = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
 
   if (!from || !to) { alert('Укажи даты серии'); return; }
   if (!time) { alert('Укажи время'); return; }
@@ -1012,7 +1160,7 @@ function saveSeries() {
       time: time, students: students.slice(), subject: subject,
       status: 'planned', homework: '', hw_done: false,
       price_paid: paid, paid_date: paid ? todayKey() : '',
-      manual: true
+      manual: true, duration: dur
     });
     created++;
   });
@@ -1049,7 +1197,7 @@ function renderStudents() {
       data.lessons[key].forEach(function(l) {
         if (l.students.indexOf(sid) !== -1 && l.status === 'done') {
           done++;
-          if (!l.price_paid) debt += s.price;
+          if (!l.price_paid) debt += s.price * ((l.duration || 60) / 60);
         }
       });
     }
@@ -1079,12 +1227,12 @@ function renderStudents() {
       '<div class="student-head">' +
         '<div class="student-info">' +
           '<h3>' + s.name + '</h3>' +
-          '<div style="font-size:14px;color:#667eea;font-weight:600">' + (s.subject || '—') + ' · ' + s.price + ' ₽/урок' + planInfo + '</div>' +
+          '<div style="font-size:14px;color:#667eea;font-weight:600">' + (s.subject || '—') + ' · ' + s.price + ' ₽/час' + planInfo + '</div>' +
           '<div class="student-row"><span>📞 ' + (s.phone || '—') + '</span><span>👪 ' + (s.parent || '—') + '</span></div>' +
           '<div class="student-row" style="margin-top:10px">' +
             '<span>Проведено: <b>' + done + '</b></span>' +
             '<span>Оплачено: <b>' + paid.toLocaleString('ru') + ' ₽</b></span>' +
-            '<span>Долг: <span class="' + (realDebt > 0 ? 'debt' : 'ok') + '">' + realDebt.toLocaleString('ru') + ' ₽</span></span>' +
+            '<span>Долг: <span class="' + (realDebt > 0 ? 'debt' : 'ok') + '">' + Math.round(realDebt).toLocaleString('ru') + ' ₽</span></span>' +
           '</div>' +
         '</div>' +
         '<div class="student-actions">' +
@@ -1099,22 +1247,22 @@ function renderStudents() {
 
 function openStudentEditor(sid) {
   editingStudentId = sid || null;
-  var s = sid ? data.students[sid] : { name:'', subject:'', price:1000, phone:'', parent:'', weekly_plan:0 };
+  var s = sid ? data.students[sid] : { name:'', subject:'', price:1500, phone:'', parent:'', weekly_plan:0 };
   document.getElementById('studentModalTitle').textContent = sid ? 'Редактировать ученика' : 'Новый ученик';
   document.getElementById('studentModalBody').innerHTML =
     '<label>Имя и фамилия *</label>' +
     '<input type="text" id="sName" value="' + (s.name || '') + '" placeholder="Иванов Иван">' +
     '<label>Предмет</label>' +
     '<input type="text" id="sSubject" value="' + (s.subject || '') + '" placeholder="Математика">' +
-    '<label>Стоимость урока, ₽</label>' +
-    '<input type="number" id="sPrice" value="' + (s.price || 1000) + '" min="0">' +
+    '<label>Стоимость за час, ₽</label>' +
+    '<input type="number" id="sPrice" value="' + (s.price || 1500) + '" min="0">' +
+    '<div style="color:#7f8c8d;font-size:13px;margin-top:8px">💡 Стоимость урока = цена за час × длительность. Например: 1500 ₽/час × 1,5 ч = 2250 ₽.</div>' +
     '<label>Телефон</label>' +
     '<input type="tel" id="sPhone" value="' + (s.phone || '') + '" placeholder="+7 900 000-00-00">' +
     '<label>Родитель</label>' +
     '<input type="text" id="sParent" value="' + (s.parent || '') + '" placeholder="Мама: +7 900 000-00-00">' +
     '<label>Уроков в неделю (для контроля плавающих)</label>' +
-    '<input type="number" id="sWeekly" value="' + (s.weekly_plan || 0) + '" min="0" placeholder="0 = не отслеживать">' +
-    '<div style="color:#7f8c8d;font-size:13px;margin-top:8px">💡 Если ученик занимается 1 раз в неделю в разные дни — поставь «1».</div>';
+    '<input type="number" id="sWeekly" value="' + (s.weekly_plan || 0) + '" min="0" placeholder="0 = не отслеживать">';
   showModal('studentModalBg');
 }
 
@@ -1179,11 +1327,13 @@ function renderWeek() {
       var names = slot.students.map(function(s) {
         return data.students[s] ? data.students[s].name : '?';
       }).join(', ');
+      var dur = slot.duration || 60;
       var row = document.createElement('div');
       row.className = 'slot-row';
       row.innerHTML =
         '<div class="slot-day">' + DAYS[d] + '</div>' +
-        '<div class="slot-info"><b>' + slot.time + '</b> · ' + slot.subject + ' · ' + names + '</div>' +
+        '<div class="slot-info"><b>' + slot.time + '</b> · ' + slot.subject + ' · ' + names +
+        ' · <span style="color:#e67e22">⏱ ' + formatDuration(dur) + '</span></div>' +
         '<div class="student-actions">' +
           '<button class="icon-btn" onclick="openSlotEditor(' + d + ',' + idx + ')">✏️</button>' +
           '<button class="icon-btn danger" onclick="deleteSlotDirect(' + d + ',' + idx + ')">🗑</button>' +
@@ -1201,7 +1351,7 @@ function openSlotEditor(day, idx) {
     slot = data.schedule[day][idx];
     document.getElementById('slotDeleteBtn').style.display = 'block';
   } else {
-    slot = { time: '15:00', students: [], subject: '' };
+    slot = { time: '15:00', students: [], subject: '', duration: 60 };
     document.getElementById('slotDeleteBtn').style.display = 'none';
   }
   document.getElementById('slotModalTitle').textContent = (idx !== undefined && idx >= 0) ? 'Редактировать занятие' : 'Новое занятие в шаблоне';
@@ -1216,8 +1366,9 @@ function openSlotEditor(day, idx) {
                data.students[sid].name + '</div>';
       }).join('') + '</div>';
   }
+  var slotDur = slot.duration || 60;
   document.getElementById('slotModalBody').innerHTML =
-    '<div style="color:#7f8c8d;font-size:13px;margin-bottom:12px">⚠️ Шаблон повторяется каждую неделю без конца. Для занятий на период — <b>📆 Добавить серию</b> в календаре.</div>' +
+    '<div style="color:#7f8c8d;font-size:13px;margin-bottom:12px">⚠️ Шаблон повторяется каждую неделю без конца.</div>' +
     '<label>День недели</label>' +
     '<select id="slotDay">' +
       DAYS.map(function(d, i) { return '<option value="' + i + '"' + (i === (day||0) ? ' selected' : '') + '>' + d + '</option>'; }).join('') +
@@ -1226,20 +1377,24 @@ function openSlotEditor(day, idx) {
     '<input type="time" id="slotTime" value="' + slot.time + '">' +
     '<label>Предмет</label>' +
     '<input type="text" id="slotSubject" value="' + (slot.subject || '') + '" placeholder="Математика">' +
+    '<label>Длительность</label>' +
+    '<div id="slotDurWrap">' + renderDurationPicker(slotDur) + '</div>' +
     '<label>Ученики</label>' + studentsHtml;
   showModal('slotModalBg');
+  setupDurationPicker('slotDurWrap', slotDur, function() {});
 }
 
 function saveSlot() {
   var day = parseInt(document.getElementById('slotDay').value, 10);
   var time = document.getElementById('slotTime').value;
   var subject = document.getElementById('slotSubject').value.trim();
+  var dur = parseInt(document.getElementById('durCustomVal').value, 10) || 60;
   if (!time) { alert('Укажи время'); return; }
   var chips = document.querySelectorAll('#studentPicker .student-chip.selected');
   var students = [];
   for (var i = 0; i < chips.length; i++) students.push(chips[i].getAttribute('data-sid'));
   if (!students.length) { alert('Выбери хотя бы одного ученика'); return; }
-  var newSlot = { time: time, students: students, subject: subject };
+  var newSlot = { time: time, students: students, subject: subject, duration: dur };
   if (editingSlot.idx >= 0) {
     var oldDay = editingSlot.day;
     if (oldDay === day) data.schedule[day][editingSlot.idx] = newSlot;

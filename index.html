@@ -42,7 +42,12 @@
     background: white; border-radius: 16px; padding: 28px;
     box-shadow: 0 10px 40px rgba(0,0,0,.15);
   }
-  .panel h2 { font-size: 22px; margin-bottom: 20px; color: #2c3e50; }
+  .panel h2 { font-size: 22px; margin-bottom: 20px; color: #2c3e50; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .panel h2 button {
+    padding: 8px 16px; border: none; border-radius: 8px;
+    background: #27ae60; color: white; cursor: pointer; font-weight: 600; font-size: 14px; font-family: inherit;
+  }
+  .panel h2 button:hover { background: #219150; }
 
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .stat-card { padding: 18px; border-radius: 12px; background: #f8faff; border-left: 4px solid #667eea; }
@@ -95,11 +100,30 @@
   .student-card {
     background: #f8faff; border-radius: 12px; padding: 18px;
     margin-bottom: 12px; border-left: 4px solid #667eea;
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
+  .student-info { flex: 1; min-width: 200px; }
   .student-card h3 { font-size: 17px; margin-bottom: 8px; }
   .student-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 6px; font-size: 14px; color: #555; }
   .debt { color: #e74c3c; font-weight: 700; }
   .ok { color: #27ae60; font-weight: 700; }
+  .student-actions { display: flex; gap: 8px; align-items: flex-start; }
+  .icon-btn {
+    width: 36px; height: 36px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 16px; background: #e0e4ea; color: #2c3e50; transition: all .15s;
+  }
+  .icon-btn:hover { background: #cfd5dd; }
+  .icon-btn.danger { background: #fdecea; color: #e74c3c; }
+  .icon-btn.danger:hover { background: #f9d6d2; }
+
+  .slot-row {
+    display: flex; align-items: center; gap: 10px; padding: 12px;
+    background: #fafbfc; border-radius: 10px; margin-bottom: 8px;
+    border-left: 4px solid #667eea; flex-wrap: wrap;
+  }
+  .slot-day { font-weight: 700; width: 110px; }
+  .slot-info { flex: 1; font-size: 14px; color: #555; }
+  .slot-info b { color: #2c3e50; }
 
   .pay-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
   .pay-form select, .pay-form input {
@@ -115,12 +139,22 @@
   .log-item {
     padding: 10px 14px; background: #f0faf4; border-radius: 8px;
     margin-bottom: 6px; font-size: 14px; border-left: 3px solid #27ae60;
+    display: flex; justify-content: space-between; gap: 10px; align-items: center;
   }
+
+  .data-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; padding-top: 20px; border-top: 2px dashed #e0e4ea; }
+  .data-actions button {
+    padding: 10px 18px; border: 2px solid #667eea; border-radius: 8px;
+    background: white; color: #667eea; cursor: pointer; font-weight: 600; font-family: inherit;
+  }
+  .data-actions button:hover { background: #667eea; color: white; }
+  .data-actions button.danger { border-color: #e74c3c; color: #e74c3c; }
+  .data-actions button.danger:hover { background: #e74c3c; color: white; }
 
   .modal-bg {
     position: fixed; inset: 0; background: rgba(0,0,0,.5);
     display: none; align-items: center; justify-content: center; z-index: 100;
-    padding: 20px;
+    padding: 20px; overflow-y: auto;
   }
   .modal-bg.show { display: flex; }
   .modal {
@@ -131,7 +165,7 @@
   .modal label { display: block; margin: 12px 0 4px; font-size: 14px; font-weight: 600; }
   .modal input, .modal textarea, .modal select {
     width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #e0e4ea;
-    font-size: 15px; font-family: inherit;
+    font-size: 15px; font-family: inherit; background: white;
   }
   .modal textarea { min-height: 70px; resize: vertical; }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -142,6 +176,19 @@
   .btn-primary { background: #667eea; color: white; }
   .btn-primary:hover { background: #5568d3; }
   .btn-secondary { background: #f0f2f5; color: #2c3e50; }
+  .btn-danger { background: #e74c3c; color: white; }
+  .btn-danger:hover { background: #c0392b; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .checkbox-row input { width: auto; }
+
+  .student-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .student-chip {
+    padding: 6px 14px; border-radius: 20px; border: 2px solid #e0e4ea;
+    background: white; cursor: pointer; font-size: 14px; user-select: none;
+    font-family: inherit;
+  }
+  .student-chip.selected { background: #667eea; color: white; border-color: #667eea; }
 
   .empty { color: #95a5a6; font-style: italic; padding: 20px; text-align: center; }
 
@@ -155,6 +202,7 @@
     .month-title { margin-left: 0; font-size: 18px; }
     .stats { grid-template-columns: repeat(2, 1fr); }
     .stat-card .value { font-size: 18px; }
+    .slot-day { width: 70px; font-size: 13px; }
   }
 </style>
 </head>
@@ -165,7 +213,9 @@
     <div class="tabs">
       <button class="tab active" data-tab="schedule">📅 Расписание</button>
       <button class="tab" data-tab="students">👥 Ученики</button>
+      <button class="tab" data-tab="week">🗓 Неделя</button>
       <button class="tab" data-tab="payments">💰 Оплаты</button>
+      <button class="tab" data-tab="data">⚙️ Данные</button>
     </div>
   </header>
 
@@ -182,8 +232,17 @@
   </div>
 
   <div class="panel" id="panel-students" style="display:none">
-    <h2>👥 Мои ученики</h2>
+    <h2>👥 Мои ученики <button onclick="openStudentEditor()">➕ Добавить</button></h2>
     <div id="studentsList"></div>
+  </div>
+
+  <div class="panel" id="panel-week" style="display:none">
+    <h2>🗓 Расписание по дням недели <button onclick="openSlotEditor()">➕ Добавить занятие</button></h2>
+    <p style="color:#7f8c8d;margin-bottom:16px;font-size:14px">
+      Это шаблон, по которому автоматически строится расписание на каждый месяц.
+      Меняешь здесь — уроки в календаре обновятся.
+    </p>
+    <div id="weekList"></div>
   </div>
 
   <div class="panel" id="panel-payments" style="display:none">
@@ -197,8 +256,25 @@
     <h3 style="margin-top:24px;margin-bottom:12px;font-size:17px">История платежей</h3>
     <div id="paymentsLog"></div>
   </div>
+
+  <div class="panel" id="panel-data" style="display:none">
+    <h2>⚙️ Управление данными</h2>
+    <p style="color:#7f8c8d;margin-bottom:16px;font-size:14px">
+      Все данные хранятся локально в браузере телефона. Делай бэкап перед переустановкой приложения!
+    </p>
+    <div class="data-actions">
+      <button onclick="exportData()">💾 Скачать бэкап (JSON)</button>
+      <button onclick="document.getElementById('importFile').click()">📥 Загрузить бэкап</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="danger" onclick="resetData()">🗑 Сбросить всё</button>
+    </div>
+    <p style="color:#95a5a6;font-size:13px;margin-top:12px">
+      Всего уроков в базе: <b id="lessonsCount">0</b>
+    </p>
+  </div>
 </div>
 
+<!-- Модалка урока -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3 id="modalTitle">Урок</h3>
@@ -210,28 +286,35 @@
   </div>
 </div>
 
+<!-- Модалка ученика -->
+<div class="modal-bg" id="studentModalBg">
+  <div class="modal">
+    <h3 id="studentModalTitle">Ученик</h3>
+    <div id="studentModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeStudentModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveStudent()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка слота расписания -->
+<div class="modal-bg" id="slotModalBg">
+  <div class="modal">
+    <h3 id="slotModalTitle">Занятие в шаблоне</h3>
+    <div id="slotModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSlotModal()">Отмена</button>
+      <button class="btn-danger" id="slotDeleteBtn" onclick="deleteSlot()" style="display:none">Удалить</button>
+      <button class="btn-primary" onclick="saveSlot()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <script>
-var DEFAULT_DATA = {
-  students: {
-    S1: { name: "Иванов Иван", subject: "Математика", price: 1500,
-          phone: "+7 900 111-22-33", parent: "Мама: +7 900 111-22-44" },
-    S2: { name: "Петрова Анна", subject: "Русский язык", price: 1200,
-          phone: "+7 900 222-33-44", parent: "" },
-    S3: { name: "Сидоров Пётр", subject: "Физика", price: 1800,
-          phone: "+7 900 333-44-55", parent: "" }
-  },
-  schedule: {
-    0: [ {time:"15:00", students:["S1"], subject:"Математика"},
-         {time:"16:30", students:["S2"], subject:"Русский"} ],
-    1: [ {time:"14:00", students:["S3"], subject:"Физика"} ],
-    2: [ {time:"15:00", students:["S1","S3"], subject:"Математика"},
-         {time:"17:00", students:["S2"], subject:"Русский"} ],
-    3: [],
-    4: [ {time:"16:00", students:["S1"], subject:"Математика"},
-         {time:"17:30", students:["S3"], subject:"Физика"} ],
-    5: [ {time:"10:00", students:["S2"], subject:"Русский"} ],
-    6: []
-  },
+var EMPTY_DATA = {
+  students: {},
+  schedule: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
   lessons: {},
   payments: []
 };
@@ -246,60 +329,79 @@ var data;
 var curMonth = new Date().getMonth();
 var curYear  = new Date().getFullYear();
 var editingLesson = null;
+var editingStudentId = null;
+var editingSlot = null; // {day, idx}
 
+// ====================== ХРАНЕНИЕ ======================
 function load() {
   try {
-    var saved = localStorage.getItem('planner_data');
+    var saved = localStorage.getItem('planner_data_v2');
     if (saved) {
       var parsed = JSON.parse(saved);
       if (parsed && parsed.students && parsed.schedule) return parsed;
     }
   } catch (e) { console.warn('Ошибка чтения', e); }
-  var d = JSON.parse(JSON.stringify(DEFAULT_DATA));
-  var y = new Date().getFullYear();
-  generateYear(d, y);
-  generateYear(d, y + 1);
+  var d = JSON.parse(JSON.stringify(EMPTY_DATA));
   return d;
 }
 
 function save() {
-  try { localStorage.setItem('planner_data', JSON.stringify(data)); }
+  try { localStorage.setItem('planner_data_v2', JSON.stringify(data)); }
   catch (e) { console.error('Ошибка сохранения', e); }
 }
 
-function generateYear(d, year) {
-  for (var m = 1; m <= 12; m++) {
-    var daysInMonth = new Date(year, m, 0).getDate();
-    for (var day = 1; day <= daysInMonth; day++) {
-      if (HOLIDAYS[m + "-" + day]) continue;
-      var dayIdx = (new Date(year, m-1, day).getDay() + 6) % 7;
-      var slots = d.schedule[dayIdx] || [];
-      if (!slots.length) continue;
-      var key = year + "-" + String(m).padStart(2,'0') + "-" + String(day).padStart(2,'0');
-      if (!d.lessons[key]) d.lessons[key] = [];
-      var existing = {};
-      d.lessons[key].forEach(function(l) { existing[l.time + "|" + l.students.join(",")] = 1; });
-      slots.forEach(function(slot) {
-        var sig = slot.time + "|" + slot.students.join(",");
-        if (existing[sig]) return;
-        d.lessons[key].push({
-          time: slot.time, students: slot.students.slice(), subject: slot.subject,
-          status: "planned", homework: "", hw_done: false, price_paid: false
-        });
-      });
-    }
+function regenerateLessons() {
+  // Удаляем только «будущие запланированные» уроки, сохраняем отметки done/cancelled и ДЗ
+  var keep = {};
+  for (var key in data.lessons) {
+    keep[key] = data.lessons[key].filter(function(l) {
+      return l.status === 'done' || l.status === 'cancelled' || l.homework || l.price_paid;
+    });
   }
+  data.lessons = keep;
+
+  var y = new Date().getFullYear();
+  [y - 1, y, y + 1, y + 2].forEach(function(year) {
+    for (var m = 1; m <= 12; m++) {
+      var daysInMonth = new Date(year, m, 0).getDate();
+      for (var day = 1; day <= daysInMonth; day++) {
+        if (HOLIDAYS[m + "-" + day]) continue;
+        var dayIdx = (new Date(year, m-1, day).getDay() + 6) % 7;
+        var slots = data.schedule[dayIdx] || [];
+        if (!slots.length) continue;
+        var key = year + "-" + String(m).padStart(2,'0') + "-" + String(day).padStart(2,'0');
+        if (!data.lessons[key]) data.lessons[key] = [];
+        var existing = {};
+        data.lessons[key].forEach(function(l) { existing[l.time + "|" + l.students.join(",")] = 1; });
+        slots.forEach(function(slot) {
+          var sig = slot.time + "|" + slot.students.join(",");
+          if (existing[sig]) return;
+          data.lessons[key].push({
+            time: slot.time, students: slot.students.slice(), subject: slot.subject,
+            status: "planned", homework: "", hw_done: false, price_paid: false
+          });
+        });
+      }
+    }
+  });
+  save();
 }
+
+// ====================== UI HELPERS ======================
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function hideModal(id) { document.getElementById(id).classList.remove('show'); }
 
 function switchTab(name) {
   var tabs = document.querySelectorAll('.tab');
   for (var i = 0; i < tabs.length; i++)
     tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab') === name);
-  ['schedule','students','payments'].forEach(function(p) {
+  ['schedule','students','week','payments','data'].forEach(function(p) {
     document.getElementById('panel-' + p).style.display = (p === name) ? 'block' : 'none';
   });
   if (name === 'students') renderStudents();
+  if (name === 'week') renderWeek();
   if (name === 'payments') renderPayments();
+  if (name === 'data') renderDataPanel();
 }
 
 function initSelects() {
@@ -334,6 +436,7 @@ function changeMonth(delta) {
   renderSchedule();
 }
 
+// ====================== РАСПИСАНИЕ ======================
 function renderSchedule() {
   document.getElementById('monthTitle').textContent = MONTHS[curMonth] + ' ' + curYear;
   var list = document.getElementById('scheduleList');
@@ -394,7 +497,7 @@ function renderSchedule() {
     list.appendChild(row);
   }
 
-  if (!anyRows) list.innerHTML = '<div class="empty">В этом месяце занятий нет</div>';
+  if (!anyRows) list.innerHTML = '<div class="empty">В этом месяце занятий нет.<br>Добавь учеников и заполни шаблон недели на вкладке «🗓 Неделя».</div>';
 
   var totalDebt = calcTotalDebt();
   document.getElementById('stats').innerHTML =
@@ -419,6 +522,7 @@ function calcTotalDebt() {
   return Math.max(0, debt - paid);
 }
 
+// ====================== МОДАЛКА УРОКА ======================
 function openLesson(dateKey, idx) {
   editingLesson = { dateKey: dateKey, idx: idx };
   var l = data.lessons[dateKey][idx];
@@ -435,9 +539,9 @@ function openLesson(dateKey, idx) {
     '</select>' +
     '<label>Домашнее задание</label>' +
     '<textarea id="mHw" placeholder="Что задано...">' + (l.homework || '') + '</textarea>' +
-    '<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" id="mHwDone"' + (l.hw_done?' checked':'') + ' style="width:auto"> Проверено</label>' +
-    '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="mPaid"' + (l.price_paid?' checked':'') + ' style="width:auto"> Оплачено</label>';
-  document.getElementById('modalBg').classList.add('show');
+    '<div class="checkbox-row"><input type="checkbox" id="mHwDone"' + (l.hw_done?' checked':'') + '> Проверено</div>' +
+    '<div class="checkbox-row"><input type="checkbox" id="mPaid"' + (l.price_paid?' checked':'') + '> Оплачено</div>';
+  showModal('modalBg');
 }
 
 function saveLesson() {
@@ -448,19 +552,23 @@ function saveLesson() {
   l.hw_done = document.getElementById('mHwDone').checked;
   l.price_paid = document.getElementById('mPaid').checked;
   save();
-  closeModal();
+  hideModal('modalBg');
+  editingLesson = null;
   renderSchedule();
 }
 
-function closeModal() {
-  document.getElementById('modalBg').classList.remove('show');
-  editingLesson = null;
-}
+function closeModal() { hideModal('modalBg'); editingLesson = null; }
 
+// ====================== УЧЕНИКИ ======================
 function renderStudents() {
   var list = document.getElementById('studentsList');
   list.innerHTML = '';
-  for (var sid in data.students) {
+  var ids = Object.keys(data.students);
+  if (!ids.length) {
+    list.innerHTML = '<div class="empty">Пока нет учеников.<br>Нажми «➕ Добавить» сверху.</div>';
+    return;
+  }
+  ids.forEach(function(sid) {
     var s = data.students[sid];
     var debt = 0, done = 0;
     for (var key in data.lessons) {
@@ -478,36 +586,246 @@ function renderStudents() {
     var card = document.createElement('div');
     card.className = 'student-card';
     card.innerHTML =
-      '<h3>' + s.name + '</h3>' +
-      '<div style="font-size:14px;color:#667eea;font-weight:600">' + s.subject + ' · ' + s.price + ' ₽/урок</div>' +
-      '<div class="student-row"><span>📞 ' + (s.phone || '—') + '</span><span>👪 ' + (s.parent || '—') + '</span></div>' +
-      '<div class="student-row" style="margin-top:10px">' +
-        '<span>Проведено уроков: <b>' + done + '</b></span>' +
-        '<span>Оплачено: <b>' + paid.toLocaleString('ru') + ' ₽</b></span>' +
-        '<span>Долг: <span class="' + (realDebt > 0 ? 'debt' : 'ok') + '">' + realDebt.toLocaleString('ru') + ' ₽</span></span>' +
+      '<div class="student-info">' +
+        '<h3>' + s.name + '</h3>' +
+        '<div style="font-size:14px;color:#667eea;font-weight:600">' + (s.subject || '—') + ' · ' + s.price + ' ₽/урок</div>' +
+        '<div class="student-row"><span>📞 ' + (s.phone || '—') + '</span><span>👪 ' + (s.parent || '—') + '</span></div>' +
+        '<div class="student-row" style="margin-top:10px">' +
+          '<span>Проведено: <b>' + done + '</b></span>' +
+          '<span>Оплачено: <b>' + paid.toLocaleString('ru') + ' ₽</b></span>' +
+          '<span>Долг: <span class="' + (realDebt > 0 ? 'debt' : 'ok') + '">' + realDebt.toLocaleString('ru') + ' ₽</span></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="student-actions">' +
+        '<button class="icon-btn" onclick="openStudentEditor(\'' + sid + '\')" title="Редактировать">✏️</button>' +
+        '<button class="icon-btn danger" onclick="deleteStudent(\'' + sid + '\')" title="Удалить">🗑</button>' +
       '</div>';
     list.appendChild(card);
+  });
+}
+
+function openStudentEditor(sid) {
+  editingStudentId = sid || null;
+  var s = sid ? data.students[sid] : { name:'', subject:'', price:1000, phone:'', parent:'' };
+  document.getElementById('studentModalTitle').textContent = sid ? 'Редактировать ученика' : 'Новый ученик';
+  document.getElementById('studentModalBody').innerHTML =
+    '<label>Имя и фамилия *</label>' +
+    '<input type="text" id="sName" value="' + (s.name || '') + '" placeholder="Иванов Иван">' +
+    '<label>Предмет</label>' +
+    '<input type="text" id="sSubject" value="' + (s.subject || '') + '" placeholder="Математика">' +
+    '<label>Стоимость урока, ₽</label>' +
+    '<input type="number" id="sPrice" value="' + (s.price || 1000) + '" min="0">' +
+    '<label>Телефон</label>' +
+    '<input type="tel" id="sPhone" value="' + (s.phone || '') + '" placeholder="+7 900 000-00-00">' +
+    '<label>Родитель</label>' +
+    '<input type="text" id="sParent" value="' + (s.parent || '') + '" placeholder="Мама: +7 900 000-00-00">';
+  showModal('studentModalBg');
+}
+
+function saveStudent() {
+  var name = document.getElementById('sName').value.trim();
+  if (!name) { alert('Введи имя ученика'); return; }
+  var obj = {
+    name: name,
+    subject: document.getElementById('sSubject').value.trim(),
+    price: parseInt(document.getElementById('sPrice').value, 10) || 0,
+    phone: document.getElementById('sPhone').value.trim(),
+    parent: document.getElementById('sParent').value.trim()
+  };
+  if (editingStudentId) {
+    data.students[editingStudentId] = obj;
+  } else {
+    var id = 'S' + Date.now();
+    data.students[id] = obj;
+  }
+  save();
+  hideModal('studentModalBg');
+  editingStudentId = null;
+  renderStudents();
+  regenerateLessons();
+}
+
+function deleteStudent(sid) {
+  var s = data.students[sid];
+  if (!s) return;
+  if (!confirm('Удалить ученика «' + s.name + '»?\n\nОн пропадёт из расписания, но история платежей останется.')) return;
+  delete data.students[sid];
+  // Убираем из слотов шаблона
+  for (var d in data.schedule) {
+    data.schedule[d].forEach(function(slot) {
+      slot.students = slot.students.filter(function(x) { return x !== sid; });
+    });
+    data.schedule[d] = data.schedule[d].filter(function(slot) { return slot.students.length > 0; });
+  }
+  // Убираем из будущих уроков (планируемых)
+  for (var key in data.lessons) {
+    data.lessons[key].forEach(function(l) {
+      if (l.status === 'planned') {
+        l.students = l.students.filter(function(x) { return x !== sid; });
+      }
+    });
+    data.lessons[key] = data.lessons[key].filter(function(l) { return l.students.length > 0; });
+  }
+  save();
+  renderStudents();
+  regenerateLessons();
+  renderSchedule();
+}
+
+function closeStudentModal() { hideModal('studentModalBg'); editingStudentId = null; }
+
+// ====================== ШАБЛОН НЕДЕЛИ ======================
+function renderWeek() {
+  var list = document.getElementById('weekList');
+  list.innerHTML = '';
+  var anySlots = false;
+  for (var d = 0; d < 7; d++) {
+    var slots = data.schedule[d] || [];
+    if (!slots.length) continue;
+    anySlots = true;
+    slots.forEach(function(slot, idx) {
+      var names = slot.students.map(function(s) {
+        return data.students[s] ? data.students[s].name : '?';
+      }).join(', ');
+      var row = document.createElement('div');
+      row.className = 'slot-row';
+      row.innerHTML =
+        '<div class="slot-day">' + DAYS[d] + '</div>' +
+        '<div class="slot-info"><b>' + slot.time + '</b> · ' + slot.subject + ' · ' + names + '</div>' +
+        '<div class="student-actions">' +
+          '<button class="icon-btn" onclick="openSlotEditor(' + d + ',' + idx + ')">✏️</button>' +
+          '<button class="icon-btn danger" onclick="deleteSlotDirect(' + d + ',' + idx + ')">🗑</button>' +
+        '</div>';
+      list.appendChild(row);
+    });
+  }
+  if (!anySlots) {
+    list.innerHTML = '<div class="empty">Шаблон пуст.<br>Нажми «➕ Добавить занятие», чтобы создать регулярные уроки.</div>';
   }
 }
 
+function openSlotEditor(day, idx) {
+  editingSlot = { day: day || 0, idx: (idx !== undefined ? idx : -1) };
+  var slot;
+  if (idx !== undefined && idx >= 0) {
+    slot = data.schedule[day][idx];
+    document.getElementById('slotDeleteBtn').style.display = 'block';
+  } else {
+    slot = { time: '15:00', students: [], subject: '' };
+    document.getElementById('slotDeleteBtn').style.display = 'none';
+  }
+  document.getElementById('slotModalTitle').textContent = (idx !== undefined && idx >= 0) ? 'Редактировать занятие' : 'Новое занятие';
+
+  var studentsHtml = '';
+  var ids = Object.keys(data.students);
+  if (!ids.length) {
+    studentsHtml = '<div class="empty" style="padding:10px">Сначала добавь учеников на вкладке 👥</div>';
+  } else {
+    studentsHtml = '<div class="student-picker" id="studentPicker">' +
+      ids.map(function(sid) {
+        var sel = slot.students.indexOf(sid) !== -1 ? ' selected' : '';
+        return '<div class="student-chip' + sel + '" data-sid="' + sid + '" onclick="toggleChip(this)">' +
+               data.students[sid].name + '</div>';
+      }).join('') + '</div>';
+  }
+
+  document.getElementById('slotModalBody').innerHTML =
+    '<label>День недели</label>' +
+    '<select id="slotDay">' +
+      DAYS.map(function(d, i) { return '<option value="' + i + '"' + (i === (day||0) ? ' selected' : '') + '>' + d + '</option>'; }).join('') +
+    '</select>' +
+    '<label>Время</label>' +
+    '<input type="time" id="slotTime" value="' + slot.time + '">' +
+    '<label>Предмет</label>' +
+    '<input type="text" id="slotSubject" value="' + (slot.subject || '') + '" placeholder="Математика">' +
+    '<label>Ученики</label>' + studentsHtml;
+
+  showModal('slotModalBg');
+}
+
+function toggleChip(el) { el.classList.toggle('selected'); }
+
+function saveSlot() {
+  var day = parseInt(document.getElementById('slotDay').value, 10);
+  var time = document.getElementById('slotTime').value;
+  var subject = document.getElementById('slotSubject').value.trim();
+  if (!time) { alert('Укажи время'); return; }
+  var chips = document.querySelectorAll('#studentPicker .student-chip.selected');
+  var students = [];
+  for (var i = 0; i < chips.length; i++) students.push(chips[i].getAttribute('data-sid'));
+  if (!students.length) { alert('Выбери хотя бы одного ученика'); return; }
+
+  var newSlot = { time: time, students: students, subject: subject };
+
+  if (editingSlot.idx >= 0) {
+    var oldDay = editingSlot.day;
+    if (oldDay === day) {
+      data.schedule[day][editingSlot.idx] = newSlot;
+    } else {
+      data.schedule[oldDay].splice(editingSlot.idx, 1);
+      if (!data.schedule[day]) data.schedule[day] = [];
+      data.schedule[day].push(newSlot);
+    }
+  } else {
+    if (!data.schedule[day]) data.schedule[day] = [];
+    data.schedule[day].push(newSlot);
+  }
+  save();
+  hideModal('slotModalBg');
+  editingSlot = null;
+  renderWeek();
+  regenerateLessons();
+  renderSchedule();
+}
+
+function deleteSlot() {
+  if (!editingSlot || editingSlot.idx < 0) return;
+  data.schedule[editingSlot.day].splice(editingSlot.idx, 1);
+  save();
+  hideModal('slotModalBg');
+  editingSlot = null;
+  renderWeek();
+  regenerateLessons();
+  renderSchedule();
+}
+
+function deleteSlotDirect(day, idx) {
+  if (!confirm('Удалить это занятие из шаблона?')) return;
+  data.schedule[day].splice(idx, 1);
+  save();
+  renderWeek();
+  regenerateLessons();
+  renderSchedule();
+}
+
+function closeSlotModal() { hideModal('slotModalBg'); editingSlot = null; }
+
+// ====================== ОПЛАТЫ ======================
 function renderPayments() {
   var sel = document.getElementById('payStudent');
   sel.innerHTML = '';
-  for (var id in data.students) {
-    var opt = document.createElement('option');
-    opt.value = id; opt.textContent = data.students[id].name;
-    sel.appendChild(opt);
+  var ids = Object.keys(data.students);
+  if (!ids.length) {
+    sel.innerHTML = '<option value="">— нет учеников —</option>';
+  } else {
+    ids.forEach(function(id) {
+      var opt = document.createElement('option');
+      opt.value = id; opt.textContent = data.students[id].name;
+      sel.appendChild(opt);
+    });
   }
   var log = document.getElementById('paymentsLog');
   if (!data.payments.length) {
     log.innerHTML = '<div class="empty">Платежей пока нет</div>';
     return;
   }
-  log.innerHTML = data.payments.slice().reverse().map(function(p) {
+  log.innerHTML = data.payments.slice().reverse().map(function(p, i) {
     var s = data.students[p.student];
-    return '<div class="log-item"><b>' + (s ? s.name : p.student) + '</b> — ' +
+    var realIdx = data.payments.length - 1 - i;
+    return '<div class="log-item"><div><b>' + (s ? s.name : '— удалён —') + '</b> — ' +
            p.amount.toLocaleString('ru') + ' ₽ <span style="color:#7f8c8d;font-size:13px"> · ' +
-           p.date + (p.note ? ' · ' + p.note : '') + '</span></div>';
+           p.date + (p.note ? ' · ' + p.note : '') + '</span></div>' +
+           '<button class="icon-btn danger" onclick="deletePayment(' + realIdx + ')">🗑</button></div>';
   }).join('');
 }
 
@@ -515,6 +833,7 @@ function addPayment() {
   var student = document.getElementById('payStudent').value;
   var amount = parseInt(document.getElementById('payAmount').value, 10);
   var note = document.getElementById('payNote').value;
+  if (!student) { alert('Сначала добавь учеников'); return; }
   if (!amount || amount <= 0) { alert('Введи сумму'); return; }
   data.payments.push({
     student: student, amount: amount, note: note,
@@ -527,6 +846,72 @@ function addPayment() {
   renderSchedule();
 }
 
+function deletePayment(idx) {
+  if (!confirm('Удалить этот платёж?')) return;
+  data.payments.splice(idx, 1);
+  save();
+  renderPayments();
+  renderSchedule();
+}
+
+// ====================== ДАННЫЕ ======================
+function renderDataPanel() {
+  var count = 0;
+  for (var k in data.lessons) count += data.lessons[k].length;
+  document.getElementById('lessonsCount').textContent = count;
+}
+
+function exportData() {
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'planner-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parsed = JSON.parse(e.target.result);
+      if (!parsed.students || !parsed.schedule) throw new Error('Неверный формат');
+      if (!confirm('Заменить текущие данные загруженными?')) return;
+      data = parsed;
+      if (!data.lessons) data.lessons = {};
+      if (!data.payments) data.payments = [];
+      save();
+      regenerateLessons();
+      renderSchedule();
+      renderStudents();
+      renderWeek();
+      renderPayments();
+      renderDataPanel();
+      alert('✅ Данные загружены');
+    } catch (err) {
+      alert('Ошибка загрузки: ' + err.message);
+    }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function resetData() {
+  if (!confirm('Удалить ВСЕ данные (учеников, уроки, платежи)?\n\nЭто действие нельзя отменить.\n\nСовет: сначала сделай бэкап.')) return;
+  data = JSON.parse(JSON.stringify(EMPTY_DATA));
+  save();
+  renderSchedule();
+  renderStudents();
+  renderWeek();
+  renderPayments();
+  renderDataPanel();
+  alert('🗑 Всё очищено');
+}
+
+// ====================== СТАРТ ======================
 window.onload = function() {
   try {
     data = load();
@@ -546,11 +931,19 @@ window.onload = function() {
     document.getElementById('modalBg').onclick = function(e) {
       if (e.target.id === 'modalBg') closeModal();
     };
+    document.getElementById('studentModalBg').onclick = function(e) {
+      if (e.target.id === 'studentModalBg') closeStudentModal();
+    };
+    document.getElementById('slotModalBg').onclick = function(e) {
+      if (e.target.id === 'slotModalBg') closeSlotModal();
+    };
 
+    // Если приложение только запускается и данных нет — генерируем уроки
+    regenerateLessons();
     renderSchedule();
-    console.log('✅ Планировщик запущен');
 
-    // Регистрируем service worker для офлайн-режима
+    console.log('✅ Планировщик v2 запущен');
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
         .then(function() { console.log('✅ Service Worker активен'); })

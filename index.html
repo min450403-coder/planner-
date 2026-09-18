@@ -57,6 +57,18 @@
   .stat-card.red   { border-color: #e74c3c; background: #fdf3f2; }
   .stat-card.orange{ border-color: #f39c12; background: #fff9ee; }
 
+  .week-tracker {
+    background: #f8faff; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 20px; border: 2px dashed #667eea;
+  }
+  .week-tracker h4 { font-size: 14px; color: #667eea; margin-bottom: 10px; font-weight: 700; }
+  .week-tracker-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tracker-chip {
+    padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;
+    background: #fdecea; color: #e74c3c;
+  }
+  .tracker-chip.ok { background: #e8f8ef; color: #27ae60; }
+
   .month-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
   .month-nav button {
     padding: 8px 16px; border: none; border-radius: 8px; background: #667eea;
@@ -70,12 +82,14 @@
   .month-title { font-size: 22px; font-weight: 700; color: #2c3e50; margin-left: auto; }
 
   .day-row {
-    display: grid; grid-template-columns: 110px 1fr; gap: 16px;
+    display: grid; grid-template-columns: 110px 1fr 44px; gap: 16px;
     padding: 14px 16px; border-radius: 10px; margin-bottom: 8px;
     background: #fafbfc; border-left: 4px solid #667eea;
+    align-items: start;
   }
-  .day-row.weekend { border-left-color: #bdc3c7; opacity: .55; }
+  .day-row.weekend { border-left-color: #bdc3c7; opacity: .75; }
   .day-row.holiday { border-left-color: #e74c3c; background: #fdf3f2; }
+  .day-row.empty-day { opacity: .65; background: #f7f8fa; border-left-color: #e0e4ea; }
   .day-date { font-weight: 700; font-size: 15px; color: #2c3e50; }
   .day-name { font-size: 12px; color: #7f8c8d; margin-top: 2px; }
   .lessons { display: flex; flex-direction: column; gap: 6px; }
@@ -96,6 +110,15 @@
   .students-list { color: #7f8c8d; }
   .badge { font-size: 15px; }
   .holiday-label { color: #e74c3c; font-weight: 600; }
+  .no-lessons { color: #bdc3c7; font-style: italic; font-size: 13px; }
+
+  .add-btn {
+    width: 40px; height: 40px; border: 2px dashed #667eea; border-radius: 10px;
+    background: white; color: #667eea; cursor: pointer; font-size: 20px;
+    font-weight: 700; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; font-family: inherit;
+  }
+  .add-btn:hover { background: #667eea; color: white; border-style: solid; }
 
   .student-card {
     background: #f8faff; border-radius: 12px; padding: 18px;
@@ -168,9 +191,9 @@
     font-size: 15px; font-family: inherit; background: white;
   }
   .modal textarea { min-height: 70px; resize: vertical; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   .modal-actions button {
-    flex: 1; padding: 12px; border: none; border-radius: 10px;
+    flex: 1; min-width: 100px; padding: 12px; border: none; border-radius: 10px;
     cursor: pointer; font-weight: 600; font-size: 15px; font-family: inherit;
   }
   .btn-primary { background: #667eea; color: white; }
@@ -198,11 +221,12 @@
     h1 { font-size: 20px; }
     h1 span { font-size: 13px; }
     .panel { padding: 18px; }
-    .day-row { grid-template-columns: 80px 1fr; gap: 10px; padding: 10px; }
+    .day-row { grid-template-columns: 80px 1fr 40px; gap: 8px; padding: 10px; }
     .month-title { margin-left: 0; font-size: 18px; }
     .stats { grid-template-columns: repeat(2, 1fr); }
     .stat-card .value { font-size: 18px; }
     .slot-day { width: 70px; font-size: 13px; }
+    .add-btn { width: 36px; height: 36px; font-size: 18px; }
   }
 </style>
 </head>
@@ -213,7 +237,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="schedule">📅 Расписание</button>
       <button class="tab" data-tab="students">👥 Ученики</button>
-      <button class="tab" data-tab="week">🗓 Неделя</button>
+      <button class="tab" data-tab="week">🗓 Шаблон недели</button>
       <button class="tab" data-tab="payments">💰 Оплаты</button>
       <button class="tab" data-tab="data">⚙️ Данные</button>
     </div>
@@ -221,6 +245,7 @@
 
   <div class="panel" id="panel-schedule">
     <div class="stats" id="stats"></div>
+    <div id="tracker"></div>
     <div class="month-nav">
       <button onclick="changeMonth(-1)">← Назад</button>
       <select id="monthSelect"></select>
@@ -237,10 +262,10 @@
   </div>
 
   <div class="panel" id="panel-week" style="display:none">
-    <h2>🗓 Расписание по дням недели <button onclick="openSlotEditor()">➕ Добавить занятие</button></h2>
+    <h2>🗓 Шаблон недели <button onclick="openSlotEditor()">➕ Добавить занятие</button></h2>
     <p style="color:#7f8c8d;margin-bottom:16px;font-size:14px">
-      Это шаблон, по которому автоматически строится расписание на каждый месяц.
-      Меняешь здесь — уроки в календаре обновятся.
+      Регулярные уроки (каждую неделю в один и тот же день). Учеников с плавающим расписанием
+      <b>не добавляй сюда</b> — их ставь вручную в календаре кнопкой ➕ на нужный день.
     </p>
     <div id="weekList"></div>
   </div>
@@ -260,7 +285,7 @@
   <div class="panel" id="panel-data" style="display:none">
     <h2>⚙️ Управление данными</h2>
     <p style="color:#7f8c8d;margin-bottom:16px;font-size:14px">
-      Все данные хранятся локально в браузере телефона. Делай бэкап перед переустановкой приложения!
+      Все данные хранятся локально в браузере. Делай бэкап регулярно!
     </p>
     <div class="data-actions">
       <button onclick="exportData()">💾 Скачать бэкап (JSON)</button>
@@ -280,6 +305,7 @@
     <h3 id="modalTitle">Урок</h3>
     <div id="modalBody"></div>
     <div class="modal-actions">
+      <button class="btn-danger" id="lessonDeleteBtn" onclick="deleteLesson()" style="display:none">🗑 Удалить</button>
       <button class="btn-secondary" onclick="closeModal()">Отмена</button>
       <button class="btn-primary" onclick="saveLesson()">Сохранить</button>
     </div>
@@ -298,7 +324,7 @@
   </div>
 </div>
 
-<!-- Модалка слота расписания -->
+<!-- Модалка слота шаблона -->
 <div class="modal-bg" id="slotModalBg">
   <div class="modal">
     <h3 id="slotModalTitle">Занятие в шаблоне</h3>
@@ -330,32 +356,32 @@ var curMonth = new Date().getMonth();
 var curYear  = new Date().getFullYear();
 var editingLesson = null;
 var editingStudentId = null;
-var editingSlot = null; // {day, idx}
+var editingSlot = null;
 
 // ====================== ХРАНЕНИЕ ======================
 function load() {
   try {
-    var saved = localStorage.getItem('planner_data_v2');
+    var saved = localStorage.getItem('planner_data_v3');
     if (saved) {
       var parsed = JSON.parse(saved);
       if (parsed && parsed.students && parsed.schedule) return parsed;
     }
   } catch (e) { console.warn('Ошибка чтения', e); }
-  var d = JSON.parse(JSON.stringify(EMPTY_DATA));
-  return d;
+  return JSON.parse(JSON.stringify(EMPTY_DATA));
 }
 
 function save() {
-  try { localStorage.setItem('planner_data_v2', JSON.stringify(data)); }
+  try { localStorage.setItem('planner_data_v3', JSON.stringify(data)); }
   catch (e) { console.error('Ошибка сохранения', e); }
 }
 
 function regenerateLessons() {
-  // Удаляем только «будущие запланированные» уроки, сохраняем отметки done/cancelled и ДЗ
+  // Сохраняем всё, что пользователь создал или изменил
   var keep = {};
   for (var key in data.lessons) {
     keep[key] = data.lessons[key].filter(function(l) {
-      return l.status === 'done' || l.status === 'cancelled' || l.homework || l.price_paid;
+      return l.status === 'done' || l.status === 'cancelled' ||
+             l.homework || l.price_paid || l.manual;
     });
   }
   data.lessons = keep;
@@ -378,7 +404,8 @@ function regenerateLessons() {
           if (existing[sig]) return;
           data.lessons[key].push({
             time: slot.time, students: slot.students.slice(), subject: slot.subject,
-            status: "planned", homework: "", hw_done: false, price_paid: false
+            status: "planned", homework: "", hw_done: false, price_paid: false,
+            manual: false
           });
         });
       }
@@ -387,7 +414,7 @@ function regenerateLessons() {
   save();
 }
 
-// ====================== UI HELPERS ======================
+// ====================== UI ======================
 function showModal(id) { document.getElementById(id).classList.add('show'); }
 function hideModal(id) { document.getElementById(id).classList.remove('show'); }
 
@@ -442,7 +469,7 @@ function renderSchedule() {
   var list = document.getElementById('scheduleList');
   list.innerHTML = '';
   var daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
-  var monthLessons = 0, monthIncome = 0, monthDone = 0, anyRows = false;
+  var monthLessons = 0, monthIncome = 0, monthDone = 0;
 
   for (var day = 1; day <= daysInMonth; day++) {
     var dayIdx = (new Date(curYear, curMonth, day).getDay() + 6) % 7;
@@ -450,22 +477,23 @@ function renderSchedule() {
     var isHoliday = !!HOLIDAYS[(curMonth+1) + "-" + day];
     var lessons = data.lessons[key] || [];
     var isWeekend = dayIdx >= 5;
-    if (!lessons.length && !isHoliday) continue;
-    anyRows = true;
+    var isEmpty = !lessons.length && !isHoliday;
 
     var row = document.createElement('div');
-    row.className = 'day-row' + (isHoliday ? ' holiday' : (isWeekend ? ' weekend' : ''));
+    row.className = 'day-row' + (isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')) + (isEmpty ? ' empty-day' : '');
 
     var left = document.createElement('div');
     left.innerHTML = '<div class="day-date">' + day + ' ' + MONTHS[curMonth].toLowerCase() +
-                     '</div><div class="day-name">' + DAYS[dayIdx] + '</div>';
+                     '</div><div class="day-name">' + DAYS[dayIdx].slice(0, 2) + '</div>';
     row.appendChild(left);
 
     var right = document.createElement('div');
     right.className = 'lessons';
 
     if (isHoliday) {
-      right.innerHTML = '<div class="holiday-label">🎉 Выходной (праздник)</div>';
+      right.innerHTML = '<div class="holiday-label">🎉 Выходной</div>';
+    } else if (lessons.length === 0) {
+      right.innerHTML = '<div class="no-lessons">Нет уроков</div>';
     } else {
       lessons.forEach(function(l, idx) {
         var names = l.students.map(function(s) {
@@ -494,17 +522,63 @@ function renderSchedule() {
       });
     }
     row.appendChild(right);
+
+    var addBtn = document.createElement('button');
+    addBtn.className = 'add-btn';
+    addBtn.textContent = '+';
+    addBtn.title = 'Добавить урок на ' + day + ' ' + MONTHS[curMonth].toLowerCase();
+    addBtn.onclick = (function(k) { return function() { openNewLesson(k); }; })(key);
+    row.appendChild(addBtn);
+
     list.appendChild(row);
   }
-
-  if (!anyRows) list.innerHTML = '<div class="empty">В этом месяце занятий нет.<br>Добавь учеников и заполни шаблон недели на вкладке «🗓 Неделя».</div>';
 
   var totalDebt = calcTotalDebt();
   document.getElementById('stats').innerHTML =
     '<div class="stat-card"><div class="label">Занятий в месяце</div><div class="value">' + monthLessons + '</div></div>' +
     '<div class="stat-card green"><div class="label">Проведено</div><div class="value">' + monthDone + '</div></div>' +
-    '<div class="stat-card orange"><div class="label">Начислено за месяц</div><div class="value">' + monthIncome.toLocaleString('ru') + ' ₽</div></div>' +
+    '<div class="stat-card orange"><div class="label">Начислено</div><div class="value">' + monthIncome.toLocaleString('ru') + ' ₽</div></div>' +
     '<div class="stat-card red"><div class="label">Общий долг</div><div class="value">' + totalDebt.toLocaleString('ru') + ' ₽</div></div>';
+
+  renderTracker();
+}
+
+function renderTracker() {
+  // Трекер для плавающих учеников: считаем уроки на текущей неделе (пн-вс)
+  var today = new Date();
+  var dayOfWeek = (today.getDay() + 6) % 7;
+  var monday = new Date(today);
+  monday.setDate(today.getDate() - dayOfWeek);
+  var weekKeys = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    weekKeys.push(d.getFullYear() + "-" +
+                  String(d.getMonth()+1).padStart(2,'0') + "-" +
+                  String(d.getDate()).padStart(2,'0'));
+  }
+
+  var tracker = document.getElementById('tracker');
+  var rows = [];
+  for (var sid in data.students) {
+    var s = data.students[sid];
+    if (!s.weekly_plan || s.weekly_plan <= 0) continue;
+    var count = 0;
+    weekKeys.forEach(function(k) {
+      (data.lessons[k] || []).forEach(function(l) {
+        if (l.students.indexOf(sid) !== -1) count++;
+      });
+    });
+    var ok = count >= s.weekly_plan;
+    rows.push('<span class="tracker-chip' + (ok ? ' ok' : '') + '">' +
+              s.name.split(' ')[0] + ': ' + count + '/' + s.weekly_plan +
+              (ok ? ' ✅' : ' ⚠️') + '</span>');
+  }
+
+  if (!rows.length) { tracker.innerHTML = ''; return; }
+
+  tracker.innerHTML = '<div class="week-tracker"><h4>📌 Уроки на этой неделе (кто записан):</h4>' +
+                      '<div class="week-tracker-row">' + rows.join('') + '</div></div>';
 }
 
 function calcTotalDebt() {
@@ -522,15 +596,56 @@ function calcTotalDebt() {
   return Math.max(0, debt - paid);
 }
 
-// ====================== МОДАЛКА УРОКА ======================
+// ====================== НОВЫЙ УРОК ======================
+function openNewLesson(dateKey) {
+  if (!Object.keys(data.students).length) {
+    alert('Сначала добавь учеников на вкладке 👥 Ученики');
+    return;
+  }
+  var d = dateKey.split('-');
+  document.getElementById('modalTitle').textContent = 'Новый урок · ' +
+    d[2] + '.' + d[1] + '.' + d[0];
+  document.getElementById('lessonDeleteBtn').style.display = 'none';
+  editingLesson = { dateKey: dateKey, idx: -1 };
+
+  var chips = Object.keys(data.students).map(function(sid) {
+    return '<div class="student-chip" data-sid="' + sid + '" onclick="toggleChip(this)">' +
+           data.students[sid].name + '</div>';
+  }).join('');
+
+  document.getElementById('modalBody').innerHTML =
+    '<label>Время</label>' +
+    '<input type="time" id="newTime" value="16:00">' +
+    '<label>Предмет</label>' +
+    '<input type="text" id="newSubject" placeholder="Математика">' +
+    '<label>Ученики (клик — выбрать)</label>' +
+    '<div class="student-picker">' + chips + '</div>' +
+    '<div class="checkbox-row"><input type="checkbox" id="newPaid"> Оплачено заранее</div>' +
+    '<div style="color:#7f8c8d;font-size:13px;margin-top:14px">' +
+      '💡 Урок добавится <b>только на эту дату</b> и не будет повторяться каждую неделю.' +
+    '</div>';
+  showModal('modalBg');
+}
+
+// ====================== РЕДАКТИРОВАНИЕ УРОКА ======================
 function openLesson(dateKey, idx) {
   editingLesson = { dateKey: dateKey, idx: idx };
   var l = data.lessons[dateKey][idx];
-  var names = l.students.map(function(s) { return data.students[s] ? data.students[s].name : s; }).join(', ');
+  var d = dateKey.split('-');
   document.getElementById('modalTitle').textContent =
-    dateKey.split('-').reverse().join('.') + ' в ' + l.time;
+    d[2] + '.' + d[1] + '.' + d[0] + ' в ' + l.time;
+  document.getElementById('lessonDeleteBtn').style.display = 'block';
+
+  var names = l.students.map(function(s) {
+    return data.students[s] ? data.students[s].name : '— удалён —';
+  }).join(', ');
+
   document.getElementById('modalBody').innerHTML =
-    '<p style="color:#7f8c8d;margin-bottom:12px">' + l.subject + ' — ' + names + '</p>' +
+    '<p style="color:#7f8c8d;margin-bottom:12px"><b>' + l.subject + '</b> — ' + names + '</p>' +
+    '<label>Время</label>' +
+    '<input type="time" id="mTime" value="' + l.time + '">' +
+    '<label>Предмет</label>' +
+    '<input type="text" id="mSubject" value="' + (l.subject || '') + '">' +
     '<label>Статус</label>' +
     '<select id="mStatus">' +
       '<option value="planned"'   + (l.status==='planned'?' selected':'') + '>⏳ Запланирован</option>' +
@@ -544,13 +659,57 @@ function openLesson(dateKey, idx) {
   showModal('modalBg');
 }
 
+function toggleChip(el) { el.classList.toggle('selected'); }
+
 function saveLesson() {
   if (!editingLesson) return;
-  var l = data.lessons[editingLesson.dateKey][editingLesson.idx];
+  var dateKey = editingLesson.dateKey;
+
+  // === Новый урок ===
+  if (editingLesson.idx === -1) {
+    var time = document.getElementById('newTime').value;
+    var subject = document.getElementById('newSubject').value.trim();
+    if (!time) { alert('Укажи время'); return; }
+    var chips = document.querySelectorAll('#modalBody .student-chip.selected');
+    var students = [];
+    for (var i = 0; i < chips.length; i++) students.push(chips[i].getAttribute('data-sid'));
+    if (!students.length) { alert('Выбери хотя бы одного ученика'); return; }
+    var paid = document.getElementById('newPaid').checked;
+
+    if (!data.lessons[dateKey]) data.lessons[dateKey] = [];
+    data.lessons[dateKey].push({
+      time: time, students: students, subject: subject,
+      status: 'planned', homework: '', hw_done: false, price_paid: paid,
+      manual: true
+    });
+    save();
+    hideModal('modalBg');
+    editingLesson = null;
+    renderSchedule();
+    return;
+  }
+
+  // === Редактирование ===
+  var l = data.lessons[dateKey][editingLesson.idx];
+  l.time = document.getElementById('mTime').value;
+  l.subject = document.getElementById('mSubject').value.trim();
   l.status = document.getElementById('mStatus').value;
   l.homework = document.getElementById('mHw').value;
   l.hw_done = document.getElementById('mHwDone').checked;
   l.price_paid = document.getElementById('mPaid').checked;
+  save();
+  hideModal('modalBg');
+  editingLesson = null;
+  renderSchedule();
+}
+
+function deleteLesson() {
+  if (!editingLesson || editingLesson.idx < 0) return;
+  if (!confirm('Удалить этот урок?')) return;
+  data.lessons[editingLesson.dateKey].splice(editingLesson.idx, 1);
+  if (!data.lessons[editingLesson.dateKey].length) {
+    delete data.lessons[editingLesson.dateKey];
+  }
   save();
   hideModal('modalBg');
   editingLesson = null;
@@ -583,12 +742,14 @@ function renderStudents() {
                             .reduce(function(sum,p){ return sum + p.amount; }, 0);
     var realDebt = Math.max(0, debt - paid);
 
+    var planInfo = s.weekly_plan ? ' · план: ' + s.weekly_plan + '/нед' : '';
+
     var card = document.createElement('div');
     card.className = 'student-card';
     card.innerHTML =
       '<div class="student-info">' +
         '<h3>' + s.name + '</h3>' +
-        '<div style="font-size:14px;color:#667eea;font-weight:600">' + (s.subject || '—') + ' · ' + s.price + ' ₽/урок</div>' +
+        '<div style="font-size:14px;color:#667eea;font-weight:600">' + (s.subject || '—') + ' · ' + s.price + ' ₽/урок' + planInfo + '</div>' +
         '<div class="student-row"><span>📞 ' + (s.phone || '—') + '</span><span>👪 ' + (s.parent || '—') + '</span></div>' +
         '<div class="student-row" style="margin-top:10px">' +
           '<span>Проведено: <b>' + done + '</b></span>' +
@@ -606,7 +767,7 @@ function renderStudents() {
 
 function openStudentEditor(sid) {
   editingStudentId = sid || null;
-  var s = sid ? data.students[sid] : { name:'', subject:'', price:1000, phone:'', parent:'' };
+  var s = sid ? data.students[sid] : { name:'', subject:'', price:1000, phone:'', parent:'', weekly_plan:0 };
   document.getElementById('studentModalTitle').textContent = sid ? 'Редактировать ученика' : 'Новый ученик';
   document.getElementById('studentModalBody').innerHTML =
     '<label>Имя и фамилия *</label>' +
@@ -618,7 +779,13 @@ function openStudentEditor(sid) {
     '<label>Телефон</label>' +
     '<input type="tel" id="sPhone" value="' + (s.phone || '') + '" placeholder="+7 900 000-00-00">' +
     '<label>Родитель</label>' +
-    '<input type="text" id="sParent" value="' + (s.parent || '') + '" placeholder="Мама: +7 900 000-00-00">';
+    '<input type="text" id="sParent" value="' + (s.parent || '') + '" placeholder="Мама: +7 900 000-00-00">' +
+    '<label>Уроков в неделю (для контроля плавающих)</label>' +
+    '<input type="number" id="sWeekly" value="' + (s.weekly_plan || 0) + '" min="0" placeholder="0 = не отслеживать">' +
+    '<div style="color:#7f8c8d;font-size:13px;margin-top:8px">' +
+      '💡 Если ученик занимается 1 раз в неделю в разные дни — поставь «1». ' +
+      'Приложение будет показывать, кто уже распределён на неделю.' +
+    '</div>';
   showModal('studentModalBg');
 }
 
@@ -630,7 +797,8 @@ function saveStudent() {
     subject: document.getElementById('sSubject').value.trim(),
     price: parseInt(document.getElementById('sPrice').value, 10) || 0,
     phone: document.getElementById('sPhone').value.trim(),
-    parent: document.getElementById('sParent').value.trim()
+    parent: document.getElementById('sParent').value.trim(),
+    weekly_plan: parseInt(document.getElementById('sWeekly').value, 10) || 0
   };
   if (editingStudentId) {
     data.students[editingStudentId] = obj;
@@ -643,21 +811,20 @@ function saveStudent() {
   editingStudentId = null;
   renderStudents();
   regenerateLessons();
+  renderSchedule();
 }
 
 function deleteStudent(sid) {
   var s = data.students[sid];
   if (!s) return;
-  if (!confirm('Удалить ученика «' + s.name + '»?\n\nОн пропадёт из расписания, но история платежей останется.')) return;
+  if (!confirm('Удалить ученика «' + s.name + '»?')) return;
   delete data.students[sid];
-  // Убираем из слотов шаблона
   for (var d in data.schedule) {
     data.schedule[d].forEach(function(slot) {
       slot.students = slot.students.filter(function(x) { return x !== sid; });
     });
     data.schedule[d] = data.schedule[d].filter(function(slot) { return slot.students.length > 0; });
   }
-  // Убираем из будущих уроков (планируемых)
   for (var key in data.lessons) {
     data.lessons[key].forEach(function(l) {
       if (l.status === 'planned') {
@@ -714,7 +881,7 @@ function openSlotEditor(day, idx) {
     slot = { time: '15:00', students: [], subject: '' };
     document.getElementById('slotDeleteBtn').style.display = 'none';
   }
-  document.getElementById('slotModalTitle').textContent = (idx !== undefined && idx >= 0) ? 'Редактировать занятие' : 'Новое занятие';
+  document.getElementById('slotModalTitle').textContent = (idx !== undefined && idx >= 0) ? 'Редактировать занятие' : 'Новое занятие в шаблоне';
 
   var studentsHtml = '';
   var ids = Object.keys(data.students);
@@ -730,6 +897,9 @@ function openSlotEditor(day, idx) {
   }
 
   document.getElementById('slotModalBody').innerHTML =
+    '<div style="color:#7f8c8d;font-size:13px;margin-bottom:12px">' +
+      '⚠️ Шаблон повторяется каждую неделю. Для плавающих учеников используй кнопку <b>+</b> в календаре.' +
+    '</div>' +
     '<label>День недели</label>' +
     '<select id="slotDay">' +
       DAYS.map(function(d, i) { return '<option value="' + i + '"' + (i === (day||0) ? ' selected' : '') + '>' + d + '</option>'; }).join('') +
@@ -742,8 +912,6 @@ function openSlotEditor(day, idx) {
 
   showModal('slotModalBg');
 }
-
-function toggleChip(el) { el.classList.toggle('selected'); }
 
 function saveSlot() {
   var day = parseInt(document.getElementById('slotDay').value, 10);
@@ -790,7 +958,7 @@ function deleteSlot() {
 }
 
 function deleteSlotDirect(day, idx) {
-  if (!confirm('Удалить это занятие из шаблона?')) return;
+  if (!confirm('Удалить это занятие из шаблона?\n\nВсе будущие уроки по нему удалятся.')) return;
   data.schedule[day].splice(idx, 1);
   save();
   renderWeek();
@@ -900,7 +1068,7 @@ function importData(ev) {
 }
 
 function resetData() {
-  if (!confirm('Удалить ВСЕ данные (учеников, уроки, платежи)?\n\nЭто действие нельзя отменить.\n\nСовет: сначала сделай бэкап.')) return;
+  if (!confirm('Удалить ВСЕ данные?\n\nСовет: сначала сделай бэкап.')) return;
   data = JSON.parse(JSON.stringify(EMPTY_DATA));
   save();
   renderSchedule();
@@ -938,11 +1106,10 @@ window.onload = function() {
       if (e.target.id === 'slotModalBg') closeSlotModal();
     };
 
-    // Если приложение только запускается и данных нет — генерируем уроки
     regenerateLessons();
     renderSchedule();
 
-    console.log('✅ Планировщик v2 запущен');
+    console.log('✅ Планировщик v3 запущен');
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
